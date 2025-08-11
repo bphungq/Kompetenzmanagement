@@ -173,7 +173,7 @@ def page_3():
         st.markdown("")
         left, right = st.columns(2)
         left.button(label="Zurück", on_click=click_back)
-        right.button(label="Profil anlegen und fortfahren", disabled=not set_name_active_profile, on_click=create_profile_and_continue, kwargs={"id":set_id_active_profile, "name":set_name_active_profile})
+        right.button(label="Profil anlegen und fortfahren", disabled=not set_name_active_profile, on_click=create_profile_and_continue, kwargs={"id":st.session_state.set_id_active_profile, "name":set_name_active_profile})
 
 def page_4():
     st.header("Demographie")
