@@ -94,12 +94,22 @@ def delete_errors():
     if "fehlende_felder" in st.session_state:
         del st.session_state.fehlende_felder
 
+def delete_local_session_states():
+    """
+    Löscht lokale Session States, die nicht mehr benötigt werden.
+    """
+    if "set_id_active_profile" in st.session_state:
+        del st.session_state.set_id_active_profile
+    for id in ADDITIONAL_INFORMATION_IDS:
+        key = f"answer_{id}"
+        if key in st.session_state:
+            del st.session_state[key]
+
 def click_continue():
     if not check_errors():
         delete_errors()
         update_answers()
-        if "set_id_active_profile" in st.session_state:
-            del st.session_state.set_id_active_profile
+        delete_local_session_states()
         st.session_state.einleitung_page += 1
 
 def update_id_and_continue(new_id):
@@ -113,8 +123,7 @@ def create_profile_and_continue(id, name):
 def click_back():
     delete_errors()
     update_answers()
-    if "set_id_active_profile" in st.session_state:
-        del st.session_state.set_id_active_profile
+    delete_local_session_states()
     st.session_state.einleitung_page -= 1
 
 # -Titel-
@@ -131,7 +140,7 @@ def page_2():
     st.header("Zustimmung Datenschutz")
     st.markdown(CONSENT_TEXT)
     st.markdown("")
-    consent_checkbox = st.checkbox(label="Ich stimme zu", value=False, key="answer_consent")
+    st.checkbox(label="Ich stimme zu", value=False, key="answer_consent")
     left, right = st.columns(2)
     right.button(label="Weiter", on_click=click_continue)
     left.button(label="Zurück", on_click=click_back)
@@ -139,9 +148,14 @@ def page_2():
         st.warning("Um fortzufahren, stimmen Sie bitte der Datenschutzerklärung zu.")
 
 def page_3():
-    st.header("Profil auswählen (optional)")
+    st.header("Profil auswählen")
+
+    # -Zwischengespeicherte Daten übernehmen-
     if "set_id_active_profile" not in st.session_state:
         st.session_state.set_id_active_profile = st.session_state.id_active_profile
+
+    # -Erklärungstext-
+    st.markdown("Unter dem ausgewählten Profil werden Ihre Antworten gespeichert. Falls Sie bereits einen Fragebogen ausgefüllt haben, nutzen Sie bitte Ihr bestehendes Profil. Falls Sie noch keinen Fragebogen ausgefüllt haben, erstellen Sie bitte ein neues Profil. Wenn Sie dies nicht möchten, dass Ihr Name gespeichert wird, können Sie ein Pseudonym verwenden.")
 
     # -Profildaten einlesen-
     data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
@@ -152,14 +166,14 @@ def page_3():
             st.session_state.set_id_active_profile = None
         left, right = st.columns(2)
         left.button(label="ID zurücksetzen", on_click=reset_set_id_active_profile)
-        right.button(label="ID aktualisieren")
+        right.button(label="ID prüfen")
     else:
-        st.button(label="ID aktualisieren")
+        st.button(label="ID prüfen")
     if st.session_state.set_id_active_profile is None:
         st.markdown("")
         left, right = st.columns(2)
         left.button(label="Zurück", on_click=click_back)
-        right.button(label="Ohne Profil fortfahren", on_click=update_id_and_continue, kwargs={"new_id":None})
+        right.button(label="Fortfahren", disabled=True)
     elif st.session_state.set_id_active_profile in data_profiles.index:
         st.write(f"Ein Profil mit der ID {st.session_state.set_id_active_profile} ist bereits vorhanden. Wenn Sie fortfahren, werden die Antworten in diesem Profil gespeichert.")
         st.markdown("")
@@ -169,7 +183,7 @@ def page_3():
     else:
         st.write(f"Kein Profil mit der ID {st.session_state.set_id_active_profile} gefunden. Bitte legen Sie ein neues Profil an, indem Sie einen Namen vergeben, wählen Sie ein andere ID aus oder setzen Sie die ID zurück, indem Sie die Eingabe unter Profil-ID löschen.")
         set_name_active_profile = st.text_input(label="Profil Name", value=None)
-        st.button("Name aktualisieren")
+        st.button("Name prüfen")
         st.markdown("")
         left, right = st.columns(2)
         left.button(label="Zurück", on_click=click_back)
@@ -177,6 +191,14 @@ def page_3():
 
 def page_4():
     st.header("Demographie")
+
+    # -Zwischengespeicherte Daten übernehmen-
+    for id in ADDITIONAL_INFORMATION_IDS:
+        if f"answer_{id}" not in st.session_state and "current_answers" in st.session_state and id in st.session_state.current_answers:
+            st.session_state[f"answer_{id}"] = st.session_state.current_answers[id]
+        elif f"answer_{id}" not in st.session_state:
+            st.session_state[f"answer_{id}"] = None
+
     st.markdown(DEMOGRAPHY_TEXT)
     st.markdown("")
     branche_radio = st.radio(label="Branche", options=OPTIONS_INDUSTRY + ["Sonstige"], key="answer_0SD01", index=None)
@@ -186,11 +208,11 @@ def page_4():
         if "answer_0SD01B" in st.session_state:
             del st.session_state.answer_0SD01B
     st.markdown("")
-    st.text_input(label="In welcher Abteilung oder in welchem Bereich sind Sie zurzeit tätig?", key="answer_0SD02", value=None)
-    st.number_input(label="Wie lange gehören Sie bereits Ihrem aktuellen Team an? (Bitte geben Sie die Anzahl der Jahre an.)", min_value=0.0, max_value=99.0, step=0.5, key="answer_0SD03", value=None)
-    st.number_input(label="Wie lange arbeiten Sie bereits in Ihrem aktuellen Unternehmen?", min_value=0.0, max_value=99.0, step=0.5, key="answer_0SD04", value=None)
-    st.radio(label="Haben Sie derzeit Personalverantwortung?", key="answer_0SD05", options=["Ja", "Nein"], index=None)
-    st.number_input(label="Wie alt sind Sie? (optional: Bitte geben Sie 0 ein, falls Sie nicht antworten möchten)", min_value=0, max_value=99, key="answer_0SD06", value=None) # TODO: Möglichkeit nicht zu beantworten?
+    st.text_input(label="In welcher Abteilung oder in welchem Bereich sind Sie zurzeit tätig?", key="answer_0SD02")
+    st.number_input(label="Wie lange gehören Sie bereits Ihrem aktuellen Team an? (Bitte geben Sie die Anzahl der Jahre an.)", min_value=0.0, max_value=99.0, step=0.5, key="answer_0SD03")
+    st.number_input(label="Wie lange arbeiten Sie bereits in Ihrem aktuellen Unternehmen?", min_value=0.0, max_value=99.0, step=0.5, key="answer_0SD04")
+    st.radio(label="Haben Sie derzeit Personalverantwortung?", key="answer_0SD05", options=["Ja", "Nein"])
+    st.number_input(label="Wie alt sind Sie? (optional: Bitte geben Sie 0 ein, falls Sie nicht antworten möchten)", min_value=0, max_value=99, key="answer_0SD06") # TODO: Möglichkeit nicht zu beantworten?
     left, right = st.columns(2)
     left.button(label="Zurück", on_click=click_back)
     right.button(label="Weiter", on_click=click_continue)
