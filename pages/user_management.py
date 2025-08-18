@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
+import time
 from functions.menu import default_menu
 from functions.user_management import create_profile
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX
-from functions.database import get_dataframe_from_gsheet
+from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
+from functions.session_state import clear_session_states_except_mode_and_debug_mode
 
 st.set_page_config(page_title="User Management")
 
@@ -32,25 +34,59 @@ def submenu_add():
         st.rerun(scope="app")
 
 def submenu_edit():
-    pass
+    st.write("Keine Funktionalität implementiert.")
+
+def submenu_roles():
+    set_id_active_profile = st.number_input(label="Profil-ID", min_value=101, max_value=999)
+    st.button(label="ID prüfen")
+    st.write("")
+    if set_id_active_profile is not None and set_id_active_profile in data_profiles.index:
+        filtered_answers = answers_test[answers_test["Profil-ID"] == set_id_active_profile]
+        if len(filtered_answers) > 0:
+            st.write("Anworten für das Profil:")
+            edited_df = st.data_editor(
+                data = filtered_answers,
+                hide_index= True,
+                column_order= ("Profil-ID", "Speicherzeitpunkt", "Rolle"),
+                disabled = ("Profil-ID", "Speicherzeitpunkt"),
+                column_config = {
+                    "Rolle": st.column_config.TextColumn(
+                        label="Rolle",
+                        help="Hier können Sie die Rolle für das Profil festlegen.",
+                        max_chars=50
+                    )
+                }
+            )
+            if st.button(label="Rollen speichern"):
+                updated_answers = answers_test.copy()
+                updated_answers.update(edited_df)
+                update_dataframe_to_gsheet("antworten_test", updated_answers)
+                time.sleep(5)
+                st.rerun(scope="app")
+        else:
+            st.write("Keine Antworten für dieses Profil gefunden.")
+    else:
+        st.write(f"Kein Profil mit der ID {set_id_active_profile} vorhanden.")
 
 # -Tabelle für Profile verknüpfen-
 data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
 
 # -Tabelle für Antworten verknüpfen-
 answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+answers_test = get_dataframe_from_gsheet("antworten_test", index_col=COLUMN_INDEX)
 
 # -Seiteninhalt-
 st.title("User Management")
 
-submenu_options = ["Daten", "Hinzufügen", "Bearbeiten"]
+submenu_options = ["Daten", "Profil hinzufügen", "Profil bearbeiten", "Rollen zuweisen"]
 
 submenu_functions = {
     "Daten": submenu_data,
-    "Hinzufügen": submenu_add,
-    "Bearbeiten": submenu_edit
+    "Profil hinzufügen": submenu_add,
+    "Profil bearbeiten": submenu_edit,
+    "Rollen zuweisen": submenu_roles
 }
 
-selected_submenu = st.segmented_control(label="submenu", options=submenu_options, default=submenu_options[0], label_visibility="collapsed")
+selected_submenu = st.segmented_control(label="submenu", options=submenu_options, default=submenu_options[0], label_visibility="collapsed", on_change=clear_session_states_except_mode_and_debug_mode)
 
 submenu_functions[selected_submenu]()
