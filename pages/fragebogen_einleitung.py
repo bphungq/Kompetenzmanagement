@@ -201,7 +201,7 @@ def page_4():
 
     st.markdown(DEMOGRAPHY_TEXT)
     st.markdown("")
-    branche_radio = st.radio(label="Branche", options=OPTIONS_INDUSTRY + ["Sonstige"], key="answer_0SD01", index=None)
+    branche_radio = st.radio(label="In welcher Branche ist Ihr Unternehmen hauptsächlich tätig?", options=OPTIONS_INDUSTRY + ["Sonstige"], key="answer_0SD01", index=None)
     if branche_radio == "Sonstige":
         st.text_input(label="Branche Sonstige", key="answer_0SD01B", value=None)
     else:
@@ -212,7 +212,7 @@ def page_4():
     st.number_input(label="Wie lange gehören Sie bereits Ihrem aktuellen Team an? (Bitte geben Sie die Anzahl der Jahre an.)", min_value=0.0, max_value=99.0, step=0.5, key="answer_0SD03")
     st.number_input(label="Wie lange arbeiten Sie bereits in Ihrem aktuellen Unternehmen?", min_value=0.0, max_value=99.0, step=0.5, key="answer_0SD04")
     st.radio(label="Haben Sie derzeit Personalverantwortung?", key="answer_0SD05", options=["Ja", "Nein"])
-    st.number_input(label="Wie alt sind Sie? (optional: Bitte geben Sie 0 ein, falls Sie nicht antworten möchten)", min_value=0, max_value=99, key="answer_0SD06") # TODO: Möglichkeit nicht zu beantworten?
+    st.number_input(label="Wie alt sind Sie? (optional: Bitte geben Sie 0 ein, falls Sie nicht antworten möchten.)", min_value=0, max_value=99, key="answer_0SD06") # TODO: Möglichkeit nicht zu beantworten?
     left, right = st.columns(2)
     left.button(label="Zurück", on_click=click_back)
     right.button(label="Weiter", on_click=click_continue)
