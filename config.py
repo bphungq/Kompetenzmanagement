@@ -44,10 +44,12 @@ TRANSLATE_ANSWER_INDEX = {
 
 # Pfade zu Dateien
 PATH_QUESTIONNAIRE = "fragebögen/2025-07-23_Finalversion_Fragebogen_pro-kom_aufbereitet_UTF-8.csv"
-GOOGLE_SHEET_ANSWERS = "antworten"
+GOOGLE_SHEET_ANSWERS = "antworten_test"
+GOOGLE_SHEET_ANSWERS_FRAGEBOGEN = "antworten" # Damit die Antworten aus dem Fragebogen den Testdatensatz nicht beeinflussen
 GOOGLE_SHEET_PROFILES = "profile"
-GOOGLE_SHEET_BEDARFE = "bedarfe"
+GOOGLE_SHEET_BEDARFE = "bedarfe_test"
 GOOGLE_SHEET_GENERATED_DATA = "datengenerierung"
+
 
 # Spaltennamen
 COLUMN_TIMESTAMP = "Speicherzeitpunkt"

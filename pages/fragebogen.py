@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import datetime as dt
 import pytz
-from config import AMOUNT_QUESTIONS_PER_PAGE, OPTIONS_FORM, TRANSLATE_ANSWER_SAVE, TRANSLATE_ANSWER_INDEX, PATH_QUESTIONNAIRE, ADDITIONAL_INFORMATION_IDS, GOOGLE_SHEET_ANSWERS, COLUMN_PROFILE_ID, GOOGLE_SHEET_PROFILES, COLUMN_INDEX
+from config import AMOUNT_QUESTIONS_PER_PAGE, OPTIONS_FORM, TRANSLATE_ANSWER_SAVE, TRANSLATE_ANSWER_INDEX, PATH_QUESTIONNAIRE, ADDITIONAL_INFORMATION_IDS, GOOGLE_SHEET_ANSWERS_FRAGEBOGEN, COLUMN_PROFILE_ID, GOOGLE_SHEET_PROFILES, COLUMN_INDEX
 from functions.menu import no_menu
 from functions.data import get_amount_questions, get_question_ids
 from functions.session_state import clear_session_states_except_mode_and_debug_mode
@@ -56,7 +56,7 @@ def click_back():
 def submit_form():
     try:
         # Tabelle für Antworten verknüpfen
-        answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+        answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS_FRAGEBOGEN, index_col=COLUMN_INDEX)
 
         # Tabelle initialisieren
         questionnaire_id = answers.shape[0]
@@ -91,7 +91,7 @@ def submit_form():
         combined_answers = pd.concat([answers, new_answers], axis=0)
 
         # Tabelle in Google Sheets aktualisieren
-        update_dataframe_to_gsheet(GOOGLE_SHEET_ANSWERS, combined_answers)
+        update_dataframe_to_gsheet(GOOGLE_SHEET_ANSWERS_FRAGEBOGEN, combined_answers)
         
         # Session States aufräumen
         clear_session_states_except_mode_and_debug_mode()
