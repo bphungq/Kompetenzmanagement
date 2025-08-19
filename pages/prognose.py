@@ -4,11 +4,12 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 
 from functions.menu import default_menu
 from functions.data import get_cluster_names, get_selected_cluster_values, get_latest_update_time, \
     get_cluster_values_over_time, calculate_cluster_differences, create_gap_analysis_chart, get_gap_analysis_legend, \
-    get_bedarfe_for_profile
+    get_bedarfe_for_role, get_latest_update_time_bedarf
 from config import GOOGLE_SHEET_ANSWERS, COLUMN_TIMESTAMP, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE
 from functions.database import get_dataframe_from_gsheet
 
@@ -23,45 +24,84 @@ data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUM
 data_answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP)
 data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP)
 
-col1, col2 = st.columns(2)
-
-with col1:
+with st.container():
     # Profil auswählen
-    st.subheader("Profil & Bedarf Auswahl:")
+    st.subheader("Aufwahl Profil & Bedarf")
     set_name_active_profile = st.selectbox("Profil auswählen:", data_profiles[["Name"]], key="analyse_profil_auswahl_1")
     set_id_active_profile = data_profiles.index[data_profiles["Name"] == set_name_active_profile][0]
+    st.write(f"Profil-ID: {int(set_id_active_profile)}")
 
-    # Letzten Aktualisierungszeitpunkt anzeigen
+    # Überprüfen, ob Profil in den Antworten vorhanden ist
+    if set_id_active_profile not in data_answers["Profil-ID"].values:
+        st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
+        st.stop()
+
+    # Letzten Aktualisierungszeitpunkt des Profils anzeigen
     set_update_time_active_profile = get_latest_update_time(set_id_active_profile)
-    st.write(f"Letzte Aktualisierung: {set_update_time_active_profile}")
+    st.write(f"Letzte Aktualisierung des Profils: {set_update_time_active_profile}")
 
-    # Bedarf auswählen #format_func=lambda x: f"Profil {x}"
-    unique_bedarf_ids = data_bedarfe["Profil-ID"].unique().tolist()
-    set_bedarf_id = st.selectbox("Bedarf auswählen:", unique_bedarf_ids, key="bedarf_auswahl_1")
+    # Rolle anzeigen
+    current_role = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile, "Rolle"].values[0]
+    st.write(f"Aktuelle Rolle: {current_role if not pd.isna(current_role) else 'Keine Rolle zugewiesen'}")
 
-    # Zeitpunkt auswählen
-    filtered_timestamps_bedarf = data_bedarfe.index[data_bedarfe["Profil-ID"] == set_bedarf_id]
+    # Bedarf auswählen
+    unique_roles = data_bedarfe["Rolle"].unique().tolist()
+    set_role = st.selectbox("Bedarfs-Rolle anpassen:", unique_roles, key="bedarf_auswahl_1")
+
+    # Letzten Aktualisierungszeitpunkt des Bedarfs anzeigen
+    set_update_time_active_bedarf = get_latest_update_time_bedarf(set_role)
+    st.write(f"Letzte Aktualisierung des Bedarfs: {set_update_time_active_bedarf}")
+
+    # Zeitpunkt auswählen #TODO: Löschen
+    filtered_timestamps_bedarf = data_bedarfe.index[data_bedarfe["Rolle"] == set_role]
     set_timestamp_bedarf = st.selectbox("Bedarf Zeitpunkt auswählen:", filtered_timestamps_bedarf,
                                         key="analyse_zeitpunkt_2")
 
-with col2:
-    st.subheader("Szenarien Auswahl:")
-
-    scenarios = ["Einzelschulung", "Halbjährliche Schulung", "Jährliche Schulung", "Coaching"]
-    set_active_scenarios = st.multiselect("Wähle Szenarien:", scenarios)
-
-    megatrends = ["Digitalisierung", "Automatisierung", "KI"]
-    set_active_megatrends = st.multiselect("Wähle Megatrends:", megatrends)
 
 with st.container():
     cols = st.columns(2)
     # -Netzdiagramm Kompetenzen-
     with cols[0]:
         with st.container(border=False):
-            st.header("Netzdiagramm ohne Szenarien")
+            st.header("Netzdiagramm")
             # Cluster-Werte für aktives Profil und Bedarf abrufen
             cluster_values_profil = get_selected_cluster_values(set_id_active_profile, set_update_time_active_profile)
-            cluster_values_bedarf = get_bedarfe_for_profile(set_bedarf_id, set_timestamp_bedarf)
+            cluster_values_bedarf = get_bedarfe_for_role(set_role, set_timestamp_bedarf)
+
+            # Test
+            bedarfe_values = data_bedarfe.loc[data_bedarfe["Rolle"] == set_role]
+            st.write(bedarfe_values)
+            # Umwandlung des Index in Jahr
+            # Stellen Sie sicher, dass der Index als DatetimeIndex formatiert ist
+            bedarfe_values.index = pd.to_datetime(bedarfe_values.index, format='%d.%m.%Y %H:%M')
+            # Jahr extrahieren
+            bedarfe_values['Jahr'] = bedarfe_values.index.year
+            st.write(bedarfe_values)
+            #cluster_values['Jahr'] = pd.to_datetime(cluster_values['Zeitpunkt'], format='%d.%m.%Y %H:%M').dt.year
+
+            #st.write("cluster_values:", cluster_values)
+            df = bedarfe_values
+            # X und y definieren für die Regression
+            X = df['Jahr'].values.reshape(-1, 1)  # Eingabewerte (Jahre)
+            y = df['cluster1'].values                 # Zielwerte (Werte)
+
+            # Lineare Regression modellieren
+            model = LinearRegression()
+            model.fit(X, y)
+
+            # Vorhersage für zukünftige Jahre (z.B., bis 2030)
+            future_years = np.array([2026, 2027, 2028, 2029, 2030]).reshape(-1, 1)
+            predictions = model.predict(future_years)
+
+            # Ergebnisse anzeigen
+            for year, prediction in zip(future_years.flatten(), predictions):
+                st.write(f'Vorhergesagter Wert für {year}: {prediction:.2f}')
+
+
+
+
+
+
 
             kategorien = get_cluster_names()
             kategorien_list = kategorien.tolist()
@@ -100,9 +140,16 @@ with st.container():
     # -Szenario Diagramm-
     with cols[1]:
         with st.container(border=False):
-            st.header("Szenario-Prognose")
+            st.header("Szenarien Auswahl")
 
+            scenarios = ["Einzelschulung", "Halbjährliche Schulung", "Jährliche Schulung", "Coaching"]
+            set_active_scenarios = st.multiselect("Wähle Szenarien:", scenarios)
 
+            megatrends = ["Digitalisierung", "Automatisierung", "KI"]
+            set_active_megatrends = st.multiselect("Wähle Megatrends:", megatrends)
+
+st.header("Ausgeklammert (Streamlit zeigt das warum auch immer so an)")
+"""
 with st.container():
     cols = st.columns(2)
     # Profil-Prognose
@@ -141,3 +188,4 @@ with st.container():
 
             else:
                 st.warning("Keine Daten für die Differenzberechnung verfügbar.")
+"""
