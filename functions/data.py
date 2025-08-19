@@ -229,12 +229,12 @@ def get_cluster_values_over_time(profil_id, cluster_name):
     
     return result_df
 
-def get_bedarfe_for_profile(profile_id: str | int, timestamp: str) -> list[float] | None:
+def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
     """
-    Ruft die Bedarfe für eine bestimmte Profil-ID ab.
+    Ruft die Bedarfe für eine bestimmte Rolle ab.
     
     Args:
-        profile_id: Profil-ID für die die Bedarfe abgerufen werden sollen
+        role: Rolle für die die Bedarfe abgerufen werden sollen
         timestamp: Zeitpunkt für den die Bedarfe abgerufen werden sollen
         
     Returns:
@@ -243,9 +243,9 @@ def get_bedarfe_for_profile(profile_id: str | int, timestamp: str) -> list[float
     #TODO: bedarfe_df als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     bedarfe_df = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
 
-    # Filtere nach Profil-ID und Zeitpunkt
+    # Filtere nach Rolle und Zeitpunkt
     filtered_bedarf = bedarfe_df[
-        (bedarfe_df["Profil-ID"] == profile_id) &
+        (bedarfe_df["Rolle"] == role) &
         (bedarfe_df["Speicherzeitpunkt"] == timestamp)
         ]
 
@@ -279,6 +279,24 @@ def get_available_bedarfe_profiles(bedarfe_df: pd.DataFrame) -> list:
     available_profiles = bedarfe_df.index.unique().tolist()
     return sorted(available_profiles)
 
+def get_latest_update_time_bedarf(role):
+    """
+    Ruft den Zeitpunkt des letzten Eintrags für eine bestimmte Rolle ab.
+    
+    Args:
+        role: Rolle für die der letzte Eintrag gesucht wird
+        
+    Returns:
+        str or None: Zeitpunkt des letzten Eintrags oder None falls keine Einträge vorhanden
+    """
+    # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
+    bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+    filtered_bedarfe = bedarfe[bedarfe["Rolle"] == role]
+    if len(filtered_bedarfe) == 0:
+        return None
+    sorted_bedarfe = filtered_bedarfe.sort_values(by="Speicherzeitpunkt", ascending=False)  # type: ignore
+    return sorted_bedarfe["Speicherzeitpunkt"].values[0]
+
 def calculate_cluster_differences(actual_profile_id, bedarfe_profile_id, profil_timestamp, bedarfe_timestamp):
     """
     Berechnet die Differenzen zwischen tatsächlichen Cluster-Werten und Bedarfen.
@@ -299,7 +317,7 @@ def calculate_cluster_differences(actual_profile_id, bedarfe_profile_id, profil_
         return pd.DataFrame()
     
     # Bedarfe laden
-    bedarfe_values = get_bedarfe_for_profile(bedarfe_profile_id, bedarfe_timestamp)
+    bedarfe_values = get_bedarfe_for_role(bedarfe_profile_id, bedarfe_timestamp)
     if bedarfe_values is None:
         return pd.DataFrame()
     
