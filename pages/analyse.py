@@ -45,6 +45,11 @@ with col2:
     set_timestamp_bedarf = st.selectbox("Zeitpunkt auswählen:", filtered_timestamps_bedarf,
                                               key="analyse_zeitpunkt_2")
 
+# Überprüfen, ob Profil in den Antworten vorhanden ist
+if set_id_active_profile not in data_answers["Profil-ID"].values:
+    st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
+    st.stop()
+
 with st.container():
     cols = st.columns(2)
     # -Netzdiagramm Kompetenzen-
