@@ -8,9 +8,9 @@ from sklearn.preprocessing import PolynomialFeatures
 
 from functions.menu import default_menu
 from functions.data import get_cluster_names, get_selected_cluster_values, get_latest_update_time, \
-    get_cluster_values_over_time, calculate_cluster_differences, create_gap_analysis_chart, get_gap_analysis_legend, \
-    get_bedarfe_for_role, get_latest_update_time_bedarf
-from config import GOOGLE_SHEET_ANSWERS, COLUMN_TIMESTAMP, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE
+    get_bedarfe_for_role, get_latest_update_time_bedarf, invert_corresponding_answers
+    
+from config import GOOGLE_SHEET_ANSWERS, COLUMN_TIMESTAMP, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE
 from functions.database import get_dataframe_from_gsheet
 
 # -Seitenkonfiguration-
@@ -22,8 +22,41 @@ st.title("Prognose")
 # -Tabelle für Profile verknüpfen-
 data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
 data_answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP)
+data_answers.index = pd.to_datetime(data_answers.index, format='%d.%m.%Y %H:%M')
 data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP)
+data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
+fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=';', encoding='utf-8')
 
+# Jahre, die in der Prognose berücksichtigt werden sollen
+years_to_predict = [2026, 2027, 2028, 2029, 2030]
+
+
+# -Daten vorbereiten-
+# Fragebogen anpassen
+fragebogen_reduced = fragebogen[["Frage-ID", "Cluster-Nummer", "Cluster-Name"]]
+unique_cluster_names = fragebogen_reduced["Cluster-Name"].unique().tolist()
+unique_cluster_ids = fragebogen_reduced["Cluster-Nummer"].unique().tolist()
+
+# Antworten laden und Cluster-Werte berechnen
+cluster_values_answers = data_answers[["index", "Profil-ID", "Rolle"]]
+for cluster_id in unique_cluster_ids:
+    current_question_ids = fragebogen_reduced[fragebogen_reduced["Cluster-Nummer"] == cluster_id]["Frage-ID"].tolist()
+    cluster_values_answers[f"cluster{cluster_id}"] = data_answers[current_question_ids].mean(axis=1)
+
+#Spalte Jahr hinzufügen
+cluster_values_answers['Jahr'] = cluster_values_answers.index.year
+
+# Spalten "index" und "Rolle" entfernen
+cluster_values_answers = cluster_values_answers.drop(columns=['index', 'Rolle'])
+
+# Aggregieren nach Jahr und Profil-ID durch Berechnung des Mittelwerts für numerische Spalten
+cluster_values_answers = cluster_values_answers.groupby(['Jahr', 'Profil-ID']).mean(numeric_only=True)
+
+# Sortieren nach Profil-ID und Jahr
+cluster_values_answers = cluster_values_answers.sort_values(by=['Profil-ID', 'Jahr']).reset_index()
+
+
+# -Seitenaufbau-
 with st.container():
     # Profil auswählen
     st.subheader("Aufwahl Profil & Bedarf")
@@ -31,96 +64,87 @@ with st.container():
     set_id_active_profile = data_profiles.index[data_profiles["Name"] == set_name_active_profile][0]
     st.write(f"Profil-ID: {int(set_id_active_profile)}")
 
-    # Überprüfen, ob Profil in den Antworten vorhanden ist
+    # Überprüfen, Antworten für das Profil vorhanden sind
     if set_id_active_profile not in data_answers["Profil-ID"].values:
         st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
         st.stop()
 
     # Letzten Aktualisierungszeitpunkt des Profils anzeigen
-    set_update_time_active_profile = get_latest_update_time(set_id_active_profile)
-    st.write(f"Letzte Aktualisierung des Profils: {set_update_time_active_profile}")
+    #set_update_time_active_profile = get_latest_update_time(set_id_active_profile)
+    # Angenommen, set_id_active_profile ist definiert
+    last_update_time_active_profile = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile].sort_index().index[-1]
+    st.write(f"Letzte Aktualisierung des Profils: {last_update_time_active_profile}")
 
-    # Rolle anzeigen
-    current_role = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile, "Rolle"].values[0]
+    # Aktuelle Rolle anzeigen
+    current_role = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile, "Rolle"].values[-1]
     st.write(f"Aktuelle Rolle: {current_role if not pd.isna(current_role) else 'Keine Rolle zugewiesen'}")
 
-    # Bedarf auswählen
+    # Bedarf auswählen; aktuelle Rolle als Standardwert
     unique_roles = data_bedarfe["Rolle"].unique().tolist()
-    set_role = st.selectbox("Bedarfs-Rolle anpassen:", unique_roles, key="bedarf_auswahl_1")
+    if current_role in unique_roles:
+        index_role = unique_roles.index(current_role)
+    else:
+        index_role = None
+    set_role = st.selectbox(label="Bedarfs-Rolle anpassen:", options=unique_roles, index=index_role, placeholder="Rolle auswählen")
 
     # Letzten Aktualisierungszeitpunkt des Bedarfs anzeigen
-    set_update_time_active_bedarf = get_latest_update_time_bedarf(set_role)
-    st.write(f"Letzte Aktualisierung des Bedarfs: {set_update_time_active_bedarf}")
+    if set_role:
+        last_update_time_active_bedarf = data_bedarfe.loc[data_bedarfe["Rolle"] == set_role].sort_index().index[-1]
+        st.write(f"Letzte Aktualisierung der Bedarfs-Rolle: {last_update_time_active_bedarf}")
 
-    # Zeitpunkt auswählen #TODO: Löschen
-    filtered_timestamps_bedarf = data_bedarfe.index[data_bedarfe["Rolle"] == set_role]
-    set_timestamp_bedarf = st.selectbox("Bedarf Zeitpunkt auswählen:", filtered_timestamps_bedarf,
-                                        key="analyse_zeitpunkt_2")
 
+# -Datenanalyse-
+# Cluster-Werte für das aktive Profil filtern
+cluster_values_answers_for_profile = cluster_values_answers[cluster_values_answers["Profil-ID"] == set_id_active_profile]
+
+# X und Y für die Regression definieren
+cluster_columns = [col for col in cluster_values_answers_for_profile.columns if col.startswith('cluster')]
+# Eingabewerte (Jahre)
+X = cluster_values_answers_for_profile['Jahr'].values.reshape(-1, 1)
+# Zielwerte (Werte)
+Y = cluster_values_answers_for_profile[cluster_columns].values
+
+# Lineare Regression modellieren
+model = LinearRegression()
+model.fit(X, Y)
+
+# Vorhersagen machen
+future_years = np.array(years_to_predict).reshape(-1 ,1)
+predictions_np = model.predict(future_years)
+predictions = pd.DataFrame(predictions_np, columns=cluster_columns)
+predictions = predictions.mask(predictions < 1, other=1)
+predictions = predictions.mask(predictions > 5, other=5)
+predictions['Jahr'] = future_years.flatten()
+predictions['Profil-ID'] = set_id_active_profile
+cluster_values_answers_for_profile_with_predictions = pd.concat([cluster_values_answers_for_profile, predictions], ignore_index=True)
 
 with st.container():
-    cols = st.columns(2)
-    # -Netzdiagramm Kompetenzen-
-    with cols[0]:
+    left, right = st.columns(2)
+
+    # -Netzdiagramm Prognose-
+    with left:
         with st.container(border=False):
-            st.header("Netzdiagramm")
-            # Cluster-Werte für aktives Profil und Bedarf abrufen
-            cluster_values_profil = get_selected_cluster_values(set_id_active_profile, set_update_time_active_profile)
-            cluster_values_bedarf = get_bedarfe_for_role(set_role, set_timestamp_bedarf)
+            st.subheader("Netzdiagramm Prognose")
 
-            # Test
-            bedarfe_values = data_bedarfe.loc[data_bedarfe["Rolle"] == set_role]
-            st.write(bedarfe_values)
-            # Umwandlung des Index in Jahr
-            # Stellen Sie sicher, dass der Index als DatetimeIndex formatiert ist
-            bedarfe_values.index = pd.to_datetime(bedarfe_values.index, format='%d.%m.%Y %H:%M')
-            # Jahr extrahieren
-            bedarfe_values['Jahr'] = bedarfe_values.index.year
-            st.write(bedarfe_values)
-            #cluster_values['Jahr'] = pd.to_datetime(cluster_values['Zeitpunkt'], format='%d.%m.%Y %H:%M').dt.year
+            # Jahr zum Anzeigen der Werte auswählen
+            set_year = st.segmented_control(label="Jahr auswählen", options=years_to_predict, default=years_to_predict[0], label_visibility="collapsed")
 
-            #st.write("cluster_values:", cluster_values)
-            df = bedarfe_values
-            # X und y definieren für die Regression
-            X = df['Jahr'].values.reshape(-1, 1)  # Eingabewerte (Jahre)
-            y = df['cluster1'].values                 # Zielwerte (Werte)
+            # Cluster-Werte für das ausgewählte Jahr filtern und in Liste umwandeln
+            cluster_values_for_figure = cluster_values_answers_for_profile_with_predictions.loc[
+                cluster_values_answers_for_profile_with_predictions['Jahr'] == set_year,
+                cluster_columns
+            ].values.tolist()[0]
 
-            # Lineare Regression modellieren
-            model = LinearRegression()
-            model.fit(X, y)
-
-            # Vorhersage für zukünftige Jahre (z.B., bis 2030)
-            future_years = np.array([2026, 2027, 2028, 2029, 2030]).reshape(-1, 1)
-            predictions = model.predict(future_years)
-
-            # Ergebnisse anzeigen
-            for year, prediction in zip(future_years.flatten(), predictions):
-                st.write(f'Vorhergesagter Wert für {year}: {prediction:.2f}')
-
-
-
-
-
-
-
-            kategorien = get_cluster_names()
-            kategorien_list = kategorien.tolist()
-
+            # -Netzdiagramm definieren-
             fig = go.Figure()
+
             # Fläche Bedarf
-            fig.add_trace(go.Scatterpolar(
-                r=cluster_values_bedarf + [cluster_values_bedarf[0]],
-                theta=kategorien_list + [kategorien_list[0]],
-                fill='toself',
-                name='Bedarfs Profil',
-                line=dict(color='red'),
-                fillcolor='rgba(255, 0, 0, 0.3)',  # Rot mit Transparenz
-            ))
+            # TODO: Hier muss die Logik für die Bedarfs-Prognose implementiert werden
 
             # Fläche Profil
             fig.add_trace(go.Scatterpolar(
-                r=cluster_values_profil + [cluster_values_profil[0]],
-                theta=kategorien_list + [kategorien_list[0]],
+                r=cluster_values_for_figure + [cluster_values_for_figure[0]],
+                theta=unique_cluster_names + [unique_cluster_names[0]],
                 fill='toself',
                 name='Aktives Profil',
                 line=dict(color='blue'),
@@ -132,60 +156,19 @@ with st.container():
                     radialaxis=dict(range=[0, 5], visible=True)
                 ),
                 showlegend=True,
-                title="Netzdiagramm Kompetenzen & Bedarfe"
+                title="Netzdiagramm Prognose"
             )
 
             st.plotly_chart(fig)
 
-    # -Szenario Diagramm-
-    with cols[1]:
+
+    # -Szenario Definition-
+    with right:
         with st.container(border=False):
-            st.header("Szenarien Auswahl")
+            st.subheader("Szenarien Auswahl")
 
             scenarios = ["Einzelschulung", "Halbjährliche Schulung", "Jährliche Schulung", "Coaching"]
             set_active_scenarios = st.multiselect("Wähle Szenarien:", scenarios)
 
             megatrends = ["Digitalisierung", "Automatisierung", "KI"]
             set_active_megatrends = st.multiselect("Wähle Megatrends:", megatrends)
-
-st.header("Ausgeklammert (Streamlit zeigt das warum auch immer so an)")
-"""
-with st.container():
-    cols = st.columns(2)
-    # Profil-Prognose
-    with cols[0]:
-        with st.container(border=False):
-            st.header("Profil-Prognose")
-            st.write(cluster_values_profil)
-
-    # GAP-Prognose
-    with cols[1]:
-        with st.container(border=False):
-            st.header("GAP-Prognose")
-
-            if not data_bedarfe.empty:
-                # Differenzen berechnen mit modularer Funktion
-                differences_df = calculate_cluster_differences(set_id_active_profile, set_bedarf_id,
-                                                               set_update_time_active_profile, set_timestamp_bedarf)
-            else:
-                differences_df = pd.DataFrame()
-
-            if not differences_df.empty:
-                # GAP-Diagramm
-                title = f'Differenz: Ist (Profil {set_id_active_profile}) - Bedarf (Profil {set_bedarf_id})'
-                fig = create_gap_analysis_chart(
-                    differences_df,
-                    title,
-                    'Differenz (Ist - Bedarf)',
-                    show_legend=False
-                )
-
-                if fig:
-                    # Höhe für dieses Diagramm anpassen
-                    fig.update_layout(height=500)
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.markdown(get_gap_analysis_legend("bedarf"))
-
-            else:
-                st.warning("Keine Daten für die Differenzberechnung verfügbar.")
-"""
