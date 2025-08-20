@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from functions.menu import default_menu
 from functions.data import get_cluster_names, get_selected_cluster_values, get_latest_update_time, \
     get_cluster_values_over_time, calculate_cluster_differences, create_gap_analysis_chart, get_gap_analysis_legend, \
-    get_bedarfe_for_profile
+    get_bedarfe_for_role
 from config import GOOGLE_SHEET_ANSWERS, COLUMN_TIMESTAMP, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE
 from functions.database import get_dataframe_from_gsheet
 
@@ -53,7 +53,7 @@ with st.container():
             st.header("Netzdiagramm Kompetenzen & Bedarfe")
             # Cluster-Werte für aktives Profil und Bedarf abrufen
             cluster_values_profil = get_selected_cluster_values(set_id_active_profile, set_update_time_active_profile)
-            cluster_values_bedarf = get_bedarfe_for_profile(set_bedarf_id, set_timestamp_bedarf)
+            cluster_values_bedarf = get_bedarfe_for_role(set_bedarf_id, set_timestamp_bedarf)
 
             kategorien = get_cluster_names()
             kategorien_list = kategorien.tolist()
