@@ -376,7 +376,7 @@ def calculate_time_differences(profile_id, first_timestamp, second_timestamp):
     
     return result_df
 
-def calculate_time_differences_bedarfe(data_bedarfe, profile_id, first_timestamp, second_timestamp):
+def calculate_time_differences_bedarfe(data_bedarfe, role, first_timestamp, second_timestamp):
     """
     Berechnet die Differenzen zwischen zwei Zeitpunkten für dasselbe Bedarfs-Profil.
     Die Werte werden direkt aus der Bedarfe-Tabelle genommen.
@@ -392,8 +392,8 @@ def calculate_time_differences_bedarfe(data_bedarfe, profile_id, first_timestamp
     """
     bedarfe_df = data_bedarfe
     # Werte für beide Zeitpunkte und Profil-ID filtern
-    first_row = bedarfe_df[(bedarfe_df['Profil-ID'] == profile_id) & (bedarfe_df['Speicherzeitpunkt'] == first_timestamp)]
-    second_row = bedarfe_df[(bedarfe_df['Profil-ID'] == profile_id) & (bedarfe_df['Speicherzeitpunkt'] == second_timestamp)]
+    first_row = bedarfe_df[(bedarfe_df['Rolle'] == role) & (bedarfe_df['Speicherzeitpunkt'] == first_timestamp)]
+    second_row = bedarfe_df[(bedarfe_df['Rolle'] == role) & (bedarfe_df['Speicherzeitpunkt'] == second_timestamp)]
     cluster_names = get_cluster_names()
     
     if first_row.empty or second_row.empty or cluster_names is None:

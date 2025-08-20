@@ -37,11 +37,11 @@ with col2:
     st.subheader("Bedarf Auswahl:")
 
     # Bedarf auswählen #format_func=lambda x: f"Profil {x}"
-    unique_bedarf_ids = data_bedarfe["Profil-ID"].unique().tolist()
-    set_bedarf_id = st.selectbox("Bedarf auswählen:", unique_bedarf_ids, key="bedarf_auswahl_1")
+    unique_bedarf_roles = data_bedarfe["Rolle"].unique().tolist()
+    set_bedarf_role = st.selectbox("Bedarfs-Rolle auswählen:", unique_bedarf_roles, key="bedarf_auswahl_1")
 
     # Zeitpunkt auswählen
-    filtered_timestamps_bedarf = data_bedarfe.index[data_bedarfe["Profil-ID"] == set_bedarf_id]
+    filtered_timestamps_bedarf = data_bedarfe.index[data_bedarfe["Rolle"] == set_bedarf_role]
     set_timestamp_bedarf = st.selectbox("Zeitpunkt auswählen:", filtered_timestamps_bedarf,
                                               key="analyse_zeitpunkt_2")
 
@@ -53,7 +53,7 @@ with st.container():
             st.header("Netzdiagramm Kompetenzen & Bedarfe")
             # Cluster-Werte für aktives Profil und Bedarf abrufen
             cluster_values_profil = get_selected_cluster_values(set_id_active_profile, set_update_time_active_profile)
-            cluster_values_bedarf = get_bedarfe_for_role(set_bedarf_id, set_timestamp_bedarf)
+            cluster_values_bedarf = get_bedarfe_for_role(set_bedarf_role, set_timestamp_bedarf)
 
             kategorien = get_cluster_names()
             kategorien_list = kategorien.tolist()
@@ -143,13 +143,13 @@ with st.container():
 
             if not data_bedarfe.empty:
                 # Differenzen berechnen mit modularer Funktion
-                differences_df = calculate_cluster_differences(set_id_active_profile, set_bedarf_id, set_update_time_active_profile, set_timestamp_bedarf)
+                differences_df = calculate_cluster_differences(set_id_active_profile, set_bedarf_role, set_update_time_active_profile, set_timestamp_bedarf)
             else:
                 differences_df = pd.DataFrame()
 
             if not differences_df.empty:
                 # GAP-Diagramm
-                title = f'Differenz: Ist (Profil {set_id_active_profile}) - Bedarf (Profil {set_bedarf_id})'
+                title = f'Differenz: Ist (Profil {set_id_active_profile}) - Bedarf (Profil {set_bedarf_role})'
                 fig = create_gap_analysis_chart(
                     differences_df,
                     title,

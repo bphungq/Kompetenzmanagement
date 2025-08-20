@@ -35,11 +35,11 @@ with col2:
     st.subheader("Bedarf Auswahl:")
     
     # Bedarf auswählen
-    unique_bedarf_ids = data_bedarfe["Profil-ID"].unique().tolist()
-    set_bedarf_id = st.selectbox("Bedarf auswählen:", unique_bedarf_ids, key="bedarf_auswahl_1")
+    unique_bedarf_roles = data_bedarfe["Rolle"].unique().tolist()
+    set_bedarf_role = st.selectbox("Bedarfs-Rolle auswählen:", unique_bedarf_roles, key="bedarf_auswahl_1")
 
     # Zeitpunkt auswählen
-    filtered_timestamps_bedarf = data_bedarfe.index[data_bedarfe["Profil-ID"] == set_bedarf_id]
+    filtered_timestamps_bedarf = data_bedarfe.index[data_bedarfe["Rolle"] == set_bedarf_role]
     set_first_timestamp_bedarf = st.selectbox("Ersten Zeitpunkt auswählen:", filtered_timestamps_bedarf, key="erster_zeitpunkt_2")
     set_second_timestamp_bedarf = st.selectbox("Zweiten Zeitpunkt auswählen:", filtered_timestamps_bedarf[-1], key="zweiter_zeitpunkt_2")
 
@@ -79,7 +79,7 @@ with col2:
     data_bedarfe = data_bedarfe.reset_index()
     differences_bedarf_df = calculate_time_differences_bedarfe(
         data_bedarfe,
-        set_bedarf_id,
+        set_bedarf_role,
         set_first_timestamp_bedarf,
         set_second_timestamp_bedarf
     )
