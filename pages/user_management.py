@@ -7,7 +7,7 @@ from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWER
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 from functions.session_state import clear_session_states_except_mode_and_debug_mode
 
-st.set_page_config(page_title="User Management")
+st.set_page_config(page_title="Profilverwaltung")
 
 default_menu()
 
@@ -76,7 +76,7 @@ answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX
 answers_test = get_dataframe_from_gsheet("antworten_test", index_col=COLUMN_INDEX)
 
 # -Seiteninhalt-
-st.title("User Management")
+st.title("Profilverwaltung")
 
 submenu_options = ["Daten", "Profil hinzufügen", "Profil bearbeiten", "Rollen zuweisen"]
 
