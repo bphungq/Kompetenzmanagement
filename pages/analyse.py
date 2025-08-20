@@ -14,7 +14,7 @@ from functions.database import get_dataframe_from_gsheet
 st.set_page_config(page_title="Analyse", layout="wide")
 default_menu()
 
-st.title("Visualisierung")
+st.title("Analyse")
 
 # -Tabelle für Profile verknüpfen-
 data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
