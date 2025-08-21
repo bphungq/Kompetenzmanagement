@@ -43,8 +43,9 @@ for cluster_id in unique_cluster_ids:
     current_question_ids = fragebogen_reduced[fragebogen_reduced["Cluster-Nummer"] == cluster_id]["Frage-ID"].tolist()
     cluster_values_answers[f"cluster{cluster_id}"] = data_answers[current_question_ids].mean(axis=1)
 
-#Spalte Jahr hinzufügen
+# Spalte Jahr hinzufügen
 cluster_values_answers['Jahr'] = cluster_values_answers.index.year
+cluster_values_answers_test = cluster_values_answers.copy()
 
 # Spalten "index" und "Rolle" entfernen
 cluster_values_answers = cluster_values_answers.drop(columns=['index', 'Rolle'])
@@ -117,6 +118,11 @@ predictions = predictions.mask(predictions > 5, other=5)
 predictions['Jahr'] = future_years.flatten()
 predictions['Profil-ID'] = set_id_active_profile
 cluster_values_answers_for_profile_with_predictions = pd.concat([cluster_values_answers_for_profile, predictions], ignore_index=True)
+
+# TODO: Temporäre Ausgabe entfernen
+st.subheader("Datenausgabe (temporär)")
+st.write("Daten vor der Prognose:", cluster_values_answers_test[cluster_values_answers_test["Profil-ID"] == set_id_active_profile])
+st.write("Daten nach der Prognose:", cluster_values_answers_for_profile_with_predictions)
 
 with st.container():
     left, right = st.columns(2)
