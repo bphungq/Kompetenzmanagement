@@ -4,11 +4,16 @@ import plotly.express as px
 from functions.menu import default_menu
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWERS, COLUMN_TIMESTAMP, GOOGLE_SHEET_BEDARFE
 from functions.database import get_dataframe_from_gsheet
-from functions.data import calculate_time_differences, create_gap_analysis_chart, get_gap_analysis_legend, calculate_time_differences_bedarfe
+from functions.data import calculate_time_differences, create_gap_analysis_chart, get_gap_analysis_legend, \
+    calculate_time_differences_bedarfe, get_cluster_values_for_correlation_matrix, calculate_development_gap
+
 
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Diagnose", layout="wide")
 default_menu()
+
+# Konfiguration für Schriftgrößen der Diagrammtitel
+TITLE_FONT_SIZE_INCREASE = 10
 
 st.title("Diagnose")
 
@@ -48,7 +53,6 @@ with col2:
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("IST Entwicklung")
     
     # Differenzen berechnen mit modularer Funktion
     differences_df = calculate_time_differences(
@@ -59,11 +63,12 @@ with col1:
     
     if not differences_df.empty:
         # Diagramm mit modularer Funktion erstellen
-        title = f'Entwicklung: {set_second_timestamp_active_profile} - {set_first_timestamp_active_profile}'
+        title = f'IST Entwicklung: {set_second_timestamp_active_profile} - {set_first_timestamp_active_profile}'
         fig = create_gap_analysis_chart(
             differences_df, 
             title, 
-            'Differenz (Später - Früher)'
+            'Differenz (Später - Früher)',
+            title_font_size=16 + TITLE_FONT_SIZE_INCREASE
         )
         
         if fig:
@@ -73,7 +78,6 @@ with col1:
         st.warning("Keine Werte für die ausgewählten Zeitpunkte verfügbar.")
 
 with col2:
-    st.subheader("Bedarf Entwicklung")
     
     # Differenzen für das Bedarfsprofil berechnen
     data_bedarfe = data_bedarfe.reset_index()
@@ -89,7 +93,8 @@ with col2:
         fig_bedarf = create_gap_analysis_chart(
             differences_bedarf_df,
             title,
-            'Differenz (Später - Früher)'
+            'Differenz (Später - Früher)',
+            title_font_size=16 + TITLE_FONT_SIZE_INCREASE
         )
         if fig_bedarf:
             st.plotly_chart(fig_bedarf, use_container_width=True)
@@ -100,28 +105,40 @@ with col2:
 # Zweite Zeile mit zwei Diagrammen
 col3, col4 = st.columns(2)
 
-# Platzhalter-Daten für die Diagramme
-placeholder_data = pd.DataFrame({
-    'Kategorie': ['A', 'B', 'C', 'D'],
-    'Wert': [25, 30, 20, 25]
-})
-
 with col3:
-    st.subheader("Diagramm 3")
-    fig3 = px.line(placeholder_data, x='Kategorie', y='Wert', title="Platzhalter Diagramm 3")
-    st.plotly_chart(fig3, use_container_width=True)
+    
+    # Gap zwischen IST-Entwicklung und Bedarf-Entwicklung berechnen
+    if not differences_df.empty and not differences_bedarf_df.empty:
+        development_gap_df = calculate_development_gap(differences_df, differences_bedarf_df)
+        
+        if not development_gap_df.empty:
+            title = 'Gap-Diagnose: IST vs. Bedarf Entwicklung'
+            fig_gap = create_gap_analysis_chart(
+                development_gap_df,
+                title,
+                'Differenz (IST-Entwicklung - Bedarf-Entwicklung)',
+                title_font_size=16 + TITLE_FONT_SIZE_INCREASE
+            )
+            if fig_gap:
+                fig_gap.update_layout(height=500)
+                st.plotly_chart(fig_gap, use_container_width=True)
+                st.markdown(get_gap_analysis_legend("entwicklung_gap"))
+        else:
+            st.warning("Keine Daten für die Gap-Diagnose verfügbar.")
+    else:
+        st.warning("Bitte stellen Sie sicher, dass sowohl IST- als auch Bedarf-Entwicklungsdaten verfügbar sind.")
 
 with col4:
-    st.subheader("Diagramm 4")
-    fig4 = px.scatter(placeholder_data, x='Kategorie', y='Wert', title="Platzhalter Diagramm 4")
-    st.plotly_chart(fig4, use_container_width=True)
-
-
-
-
-
-
-
-
-
-
+    corr_data = get_cluster_values_for_correlation_matrix(data_answers)
+    corr = corr_data.corr()  #ToDo Korrelationsdaten hier ändern
+    fig3 = px.imshow(
+        corr,
+        text_auto='.2f',  # 2 Nachkommastellen
+        color_continuous_scale="RdBu_r",
+        width=600,
+        height=600,
+        title="Korrelationsmatrix"
+    )
+    fig3.update_traces(textfont_size=12)
+    fig3.update_layout(title_font_size=16 + TITLE_FONT_SIZE_INCREASE)
+    st.plotly_chart(fig3, use_container_width=False)

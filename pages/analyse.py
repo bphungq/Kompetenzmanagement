@@ -131,18 +131,9 @@ with st.container():
 
 with st.container():
     cols = st.columns(2)
-    # -Meta-Daten-
-    with cols[0]:
-        with st.container(border=False):
-            st.header("Meta-Daten")
-            st.write(f"Profil-ID: {set_id_active_profile}")
-            st.write(f"Name: {set_name_active_profile}")
-            st.write("Rolle: ...")
-            st.write("Geburtsdatum: ...")
-            st.write(f"Letzte Aktualisierung: {get_latest_update_time(set_id_active_profile)}")
 
     # GAP-Analyse
-    with cols[1]:
+    with cols[0]:
         with st.container(border=False):
             st.header("GAP-Analyse")
 
@@ -159,6 +150,7 @@ with st.container():
                     differences_df,
                     title,
                     'Differenz (Ist - Bedarf)',
+                    positive_color= 'blue',
                     show_legend=False
                 )
 
@@ -166,7 +158,41 @@ with st.container():
                     # Höhe für dieses Diagramm anpassen
                     fig.update_layout(height=500)
                     st.plotly_chart(fig, use_container_width=True)
-                    st.markdown(get_gap_analysis_legend("bedarf"))
+                    st.markdown(get_gap_analysis_legend("analyse"))
 
             else:
                 st.warning("Keine Daten für die Differenzberechnung verfügbar.")
+    # -Meta-Daten-
+    with cols[1]:
+        with st.container(border=False):
+            st.header("Meta-Daten")
+            st.write(f"Profil-ID: {set_id_active_profile}")
+            st.write(f"Name: {set_name_active_profile}")
+            st.write(f"Anzahl Datensätze: {len(filtered_update_time)}")
+            st.write("Zeitpunkte der vorhandenen Daten:")
+            st.markdown("\n".join([f"- {ts}" for ts in filtered_update_time]))
+            role_value = None
+            if "Rolle" in data_answers.columns:
+                try:
+                    role_mask = (data_answers.index == set_update_time_active_profile) & (data_answers["Profil-ID"] == set_id_active_profile)
+                    role_rows = data_answers.loc[role_mask, "Rolle"]
+                    if len(role_rows) > 0:
+                        role_value = role_rows.iloc[0]
+                except Exception:
+                    role_value = None
+            st.write(f"Rolle: {role_value}" if pd.notna(role_value) else "Rolle: -")
+            age_value = None
+            if "0SD06" in data_answers.columns:
+                try:
+                    age_row = data_answers.loc[set_update_time_active_profile, "0SD06"]
+                    age_value = age_row.iloc[0] if isinstance(age_row, pd.Series) else age_row
+                except KeyError:
+                    age_value = None
+            display_age = None
+            if age_value is not None and pd.notna(age_value):
+                try:
+                    display_age = int(float(str(age_value).replace(',', '.')))
+                except (ValueError, TypeError):
+                    display_age = None
+            st.write(f"Alter: {display_age}" if display_age is not None else "Alter: -")
+            st.write(f"Letzte Aktualisierung: {get_latest_update_time(set_id_active_profile)}")

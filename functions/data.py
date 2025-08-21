@@ -1,6 +1,9 @@
 import pandas as pd
+from duckdb.experimental.spark import DataFrame
+
 from config import PATH_QUESTIONNAIRE, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_BEDARFE, COLUMN_TIMESTAMP, COLUMN_PROFILE_ID
 from functions.database import get_dataframe_from_gsheet
+
 
 def get_amount_questions():
     """
@@ -115,24 +118,22 @@ def get_latest_update_time(profil_id):
     sorted_answers = filtered_answers.sort_values(by="Speicherzeitpunkt", ascending=False)  # type: ignore
     return sorted_answers["Speicherzeitpunkt"].values[0]
 
-def get_latest_cluster_values(profil_id):
+def get_cluster_values_for_correlation_matrix(dataframe: pd.DataFrame):
     """
-    Berechnet die Cluster-Werte aus dem aktuellsten Fragebogen für eine bestimmte Profil-ID.
+    Berechnet die Cluster-Werte aus dem Fragebogen.
     
     Args:
-        profil_id: Profil-ID für die die Cluster-Werte berechnet werden sollen
+        dataframe (pandas.DataFrame): DataFrame mit allen Antworten
         
     Returns:
-        list or None: Liste der Cluster-Werte oder None falls keine Antworten vorhanden
+        dataframe (pandas.DataFrame): DataFrame mit den Cluster-Werten
     """
-    answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-    filtered_answers = answers[answers["Profil-ID"] == profil_id]
-    if len(filtered_answers) == 0:
-        return None
-    sorted_answers = filtered_answers.sort_values(by="Speicherzeitpunkt", ascending=False)  # type: ignore
-    latest_answer = sorted_answers.iloc[0]
-    return calculate_cluster_values(latest_answer)
-
+    df = dataframe.reset_index(drop=True)
+    df = df.apply(calculate_cluster_values, axis=1)
+    df = pd.DataFrame(df.tolist())
+    cluster_names = get_cluster_names()
+    df.columns = cluster_names
+    return df
 
 def get_selected_cluster_values(profil_id: str | int, timestamp: str) -> list[float] | None:
     """
@@ -311,7 +312,6 @@ def calculate_cluster_differences(actual_profile_id, bedarfe_profile_id, profil_
         pandas.DataFrame: DataFrame mit Cluster-Namen und Differenzen
     """
     # Aktuelle Cluster-Werte laden
-    #actual_values = get_latest_cluster_values(actual_profile_id)
     actual_values = get_selected_cluster_values(actual_profile_id, profil_timestamp)
     if actual_values is None:
         return pd.DataFrame()
@@ -417,7 +417,39 @@ def calculate_time_differences_bedarfe(data_bedarfe, role, first_timestamp, seco
     
     return result_df
 
-def create_gap_analysis_chart(differences_df, title, xaxis_title, show_legend=False):
+def calculate_development_gap(ist_differences_df, bedarf_differences_df):
+    """
+    Berechnet die Differenz zwischen IST-Entwicklung und Bedarf-Entwicklung.
+    
+    Args:
+        ist_differences_df (pandas.DataFrame): DataFrame mit IST-Entwicklungsdifferenzen
+        bedarf_differences_df (pandas.DataFrame): DataFrame mit Bedarf-Entwicklungsdifferenzen
+        
+    Returns:
+        pandas.DataFrame: DataFrame mit Cluster-Namen und Differenzen (IST-Entwicklung - Bedarf-Entwicklung)
+    """
+    if ist_differences_df.empty or bedarf_differences_df.empty:
+        return pd.DataFrame()
+    
+    # DataFrames nach Cluster sortieren, um sicherzustellen, dass sie übereinstimmen
+    ist_sorted = ist_differences_df.sort_values('Cluster').reset_index(drop=True)
+    bedarf_sorted = bedarf_differences_df.sort_values('Cluster').reset_index(drop=True)
+    
+    # Differenzen berechnen (IST-Entwicklung - Bedarf-Entwicklung)
+    development_gaps = ist_sorted['Differenz'] - bedarf_sorted['Differenz']
+    
+    # DataFrame erstellen
+    result_df = pd.DataFrame({
+        'Cluster': ist_sorted['Cluster'],
+        'Differenz': development_gaps
+    })
+    
+    # Nach Differenz sortieren (größte negative zuerst)
+    result_df = result_df.sort_values('Differenz', ascending=True)
+    
+    return result_df
+
+def create_gap_analysis_chart(differences_df, title, xaxis_title, show_legend=False, title_font_size=None, bar_color=None, negative_color=None, positive_color=None):
     """
     Erstellt ein horizontales Balkendiagramm für Gap-Analysen.
     
@@ -426,6 +458,10 @@ def create_gap_analysis_chart(differences_df, title, xaxis_title, show_legend=Fa
         title (str): Titel des Diagramms
         xaxis_title (str): Titel der X-Achse
         show_legend (bool): Ob die Legende angezeigt werden soll
+        title_font_size (int, optional): Schriftgröße für den Titel
+        bar_color (str, optional): Einzelfarbe für alle Balken (z. B. 'blue')
+        negative_color (str, optional): Farbe für negative Abweichungen (Standard 'red')
+        positive_color (str, optional): Farbe für positive Abweichungen (Standard 'green')
         
     Returns:
         plotly.graph_objects.Figure: Das erstellte Diagramm
@@ -435,68 +471,87 @@ def create_gap_analysis_chart(differences_df, title, xaxis_title, show_legend=Fa
     if differences_df.empty:
         return None
     
-    # Farben für positive/negative Abweichungen
-    colors = ['red' if x < 0 else 'green' for x in differences_df['Differenz']]
+    # Farben bestimmen: Einzel-Farbe, oder pos/neg Mapping, Standard bleibt rot/grün
+    if bar_color is not None:
+        marker_color = bar_color
+    else:
+        neg_col = negative_color if negative_color is not None else 'red'
+        pos_col = positive_color if positive_color is not None else 'green'
+        marker_color = [neg_col if x < 0 else pos_col for x in differences_df['Differenz']]
     
     # Horizontales Barchart erstellen
     fig = go.Figure()
     
     # Balken hinzufügen
-    fig.add_trace(go.Bar(
-        y=differences_df['Cluster'],
-        x=differences_df['Differenz'],
-        orientation='h',
-        marker_color=colors,
-        text=[f'{x:.1f}' for x in differences_df['Differenz']],
-        textposition='auto',
-        textangle=0,
-        name='Differenz'
-    ))
+    fig.add_trace(
+        go.Bar(
+            y=differences_df['Cluster'],
+            x=differences_df['Differenz'],
+            orientation='h',
+            marker_color=marker_color,
+            text=[f'{x:.1f}' for x in differences_df['Differenz']],
+            textposition='auto',
+            textangle=0,
+            name='Differenz'
+        )
+    )
     
     # Layout anpassen
-    fig.update_layout(
-        title=title,
-        xaxis_title=xaxis_title,
-        yaxis_title='Cluster',
-        xaxis=dict(
+    layout_dict = {
+        'title': title,
+        'xaxis_title': xaxis_title,
+        'yaxis_title': 'Cluster',
+        'xaxis': dict(
             zeroline=True,
             zerolinecolor='black',
             zerolinewidth=2,
             range=[differences_df['Differenz'].min() - 0.5, differences_df['Differenz'].max() + 0.5]
         ),
-        yaxis=dict(
+        'yaxis': dict(
             autorange='reversed'  # Größte negative Abweichung oben
         ),
-        height=400,
-        showlegend=show_legend
-    )
+        'height': 400,
+        'showlegend': show_legend
+    }
+    
+    # Schriftgröße für Titel hinzufügen, falls angegeben
+    if title_font_size is not None:
+        layout_dict['title_font_size'] = title_font_size
+    
+    fig.update_layout(**layout_dict)
     
     # Hinzufügen einer vertikalen Linie bei 0
     fig.add_vline(x=0, line_width=2, line_color="black", line_dash="solid")
     
     return fig
 
-def get_gap_analysis_legend(analysis_type="bedarf"):
+def get_gap_analysis_legend(analysis_type="analyse"):
     """
     Gibt die passende Legende für Gap-Analysen zurück.
     
     Args:
-        analysis_type (str): Art der Analyse ("bedarf" oder "zeitvergleich")
+        analysis_type (str): Art der Analyse ("analyse", "zeitvergleich" oder "entwicklung_gap")
         
     Returns:
         str: Markdown-formatierte Legende
     """
-    if analysis_type == "bedarf":
+    if analysis_type == "analyse":
         return """
         **Legende:**
         - 🔴 **Rot**: Negative Abweichung (Ist < Bedarf) - Verbesserungspotential
-        - 🟢 **Grün**: Positive Abweichung (Ist > Bedarf) - Stärke
+        - 🔵 **Blau**: Positive Abweichung (Ist > Bedarf) - Stärke
         """
     elif analysis_type == "zeitvergleich":
         return """
         **Legende:**
         - 🔴 **Rot**: Verschlechterung (Später < Früher)
         - 🟢 **Grün**: Verbesserung (Später > Früher)
+        """
+    elif analysis_type == "entwicklung_gap":
+        return """
+        **Legende:**
+        - 🔴 **Rot**: Negative Abweichung (IST-Entwicklung < Bedarf-Entwicklung) - Bedarf wächst schneller als IST
+        - 🟢 **Grün**: Positive Abweichung (IST-Entwicklung > Bedarf-Entwicklung) - IST wächst schneller als Bedarf
         """
     else:
         return ""
