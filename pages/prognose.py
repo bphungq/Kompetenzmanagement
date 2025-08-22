@@ -168,13 +168,63 @@ with st.container():
             st.plotly_chart(fig)
 
 
-    # -Szenario Definition-
+    # -Kompetenzverbesserungsmaßnahmen-
     with right:
         with st.container(border=False):
-            st.subheader("Szenarien Auswahl")
+            st.subheader("Kompetenzverbesserungsmaßnahmen")
 
-            scenarios = ["Einzelschulung", "Halbjährliche Schulung", "Jährliche Schulung", "Coaching"]
-            set_active_scenarios = st.multiselect("Wähle Szenarien:", scenarios)
+            training_programs = ["Einzelschulung", "Halbjährliche Schulung", "Jährliche Schulung", "Coaching"]
+            set_active_training_programs = st.multiselect("Wähle Maßnahmen aus:", training_programs)
+            selected_years = {}
 
-            megatrends = ["Digitalisierung", "Automatisierung", "KI"]
-            set_active_megatrends = st.multiselect("Wähle Megatrends:", megatrends)
+            for training_programs in set_active_training_programs:
+                # Erstelle ein Dropdown-Menü für das Jahr dieser Option
+                training_programs_years = st.multiselect(f"Wähle die Jahre für {training_programs}:", years_to_predict)
+
+                selected_years[training_programs] = training_programs_years
+
+
+
+
+with st.container():
+    left, right = st.columns(2)
+
+    # -Ähnlichkeitsmaß-
+    with left:
+        with st.container(border=False):
+            st.subheader("Ähnliche Profile")
+
+    # -Rollentrendabschätzung-
+    with right:
+        with st.container(border=False):
+            st.subheader("Rollentrendabschätzung")
+
+            # Vektor der Forschungsergebnisse
+            metaanalyse_values = np.array([-0.4, -0.2, 0.0, 0.2, 0.4,
+                                      -0.4, -0.2, 0.0, 0.2,
+                                      -0.4, -0.2])
+
+            # Checkbox, ob Forschungsergebnisse berücksichtigt werden sollen
+            checkbox_metaanalyse = st.checkbox("Slider anhand von Forschungsergebnissen einstellen")
+
+            # Erstellen der Slider für jede Kompetenz + Überprüfung der Checkbox
+            slider_states ={}
+            for i, name in enumerate(unique_cluster_names):
+                if checkbox_metaanalyse:
+                    slider_states[name] = st.slider(
+                        label=name,
+                        min_value=-0.4,  # Minimaler Wert
+                        max_value=0.4,  # Maximaler Wert
+                        value=metaanalyse_values[i],  # Standardwert (startwert)
+                        step=0.2  # Schrittgröße (wie viel sich der Wert bei jeder Bewegung ändern soll)
+                    )
+                else:
+                    slider_states[name] = st.slider(
+                        label=name,
+                        min_value=-0.4,  # Minimaler Wert
+                        max_value=0.4,  # Maximaler Wert
+                        value=0.0,  # Standardwert (startwert)
+                        step=0.2  # Schrittgröße (wie viel sich der Wert bei jeder Bewegung ändern soll)
+                    )
+
+            slider_values = np.array(list(slider_states.values()))
