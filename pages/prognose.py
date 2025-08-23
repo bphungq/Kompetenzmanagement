@@ -27,8 +27,7 @@ data_answers["Speicherzeitpunkt"] = pd.to_datetime(data_answers["Speicherzeitpun
 data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
 data_bedarfe["Speicherzeitpunkt"] = pd.to_datetime(data_bedarfe["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
 fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=';', encoding='utf-8')
-
-
+fragebogen['invertiert'] = fragebogen['invertiert'].fillna(False).astype(bool)
 
 # -Daten vorbereiten-
 # Fragebogen anpassen
@@ -37,23 +36,32 @@ fragebogen_reduced = fragebogen_reduced[["Frage-ID", "Cluster-Nummer", "Cluster-
 unique_cluster_names = fragebogen_reduced["Cluster-Name"].unique().tolist()
 unique_cluster_ids = fragebogen_reduced["Cluster-Nummer"].unique().tolist()
 
-# Bedarfe laden
-cluster_values_bedarfe = data_bedarfe.copy()
+# Antworten laden und invertieren
+data_answers_inverted = data_answers.copy()
+invert_dict = {1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
+for index, row in fragebogen.iterrows():
+    if row["invertiert"]:
+        frage_id = row['Frage-ID']
+        # Überprüfe ob Frage-ID-Spalte im DataFrame existiert und invertiere Werte
+        if frage_id in data_answers_inverted.columns:
+            # Invertierung
+            data_answers_inverted[frage_id] = data_answers_inverted[frage_id].map(invert_dict)
 
-# Antworten laden und Cluster-Werte berechnen
-cluster_values_answers = data_answers.copy()
-cluster_values_answers = cluster_values_answers[["Speicherzeitpunkt", "Profil-ID", "Rollen-Name"]]
+# Bedarfe laden
+cluster_values_bedarfe_full = data_bedarfe.copy()
+
+# Cluster-Werte der Antworten berechnen
+cluster_values_answers_full = data_answers_inverted.copy()
+cluster_values_answers_full = cluster_values_answers_full[["Speicherzeitpunkt", "Profil-ID", "Rollen-Name"]]
 for cluster_id in unique_cluster_ids:
     current_question_ids = fragebogen_reduced[fragebogen_reduced["Cluster-Nummer"] == cluster_id]["Frage-ID"].tolist()
-    cluster_values_answers[f"cluster{cluster_id}"] = data_answers[current_question_ids].mean(axis=1)
+    cluster_values_answers_full[f"cluster{cluster_id}"] = data_answers_inverted[current_question_ids].mean(axis=1)
 
 # Spalte Jahr hinzufügen
+cluster_values_answers = cluster_values_answers_full.copy()
 cluster_values_answers["Jahr"] = cluster_values_answers["Speicherzeitpunkt"].dt.year
+cluster_values_bedarfe = cluster_values_bedarfe_full.copy()
 cluster_values_bedarfe["Jahr"] = cluster_values_bedarfe["Speicherzeitpunkt"].dt.year
-
-# TODO: Löschen, Kopie der Daten für temporäre Ausgabe
-cluster_values_answers_test = cluster_values_answers.copy()
-cluster_values_bedarfe_test = cluster_values_bedarfe.copy()
 
 # Spalten entfernen
 cluster_values_answers = cluster_values_answers.drop(columns=["Rollen-Name", "Speicherzeitpunkt"])
@@ -67,17 +75,15 @@ cluster_values_bedarfe = cluster_values_bedarfe.groupby(["Jahr", "Rollen-Name"])
 cluster_values_answers = cluster_values_answers.sort_values(by=["Profil-ID", "Jahr"]).reset_index()
 cluster_values_bedarfe = cluster_values_bedarfe.sort_values(by=["Rollen-Name", "Jahr"]).reset_index()
 
-st.write("Daten Cluster-Werte Antworten (temporär):", cluster_values_answers)
-st.write("Daten Cluster-Werte Bedarfe (temporär):", cluster_values_bedarfe)
 
 # -Abschnitt Auswahl Profil & Rolle-
 with st.container():
     # Profil auswählen
     st.subheader("Aufwahl Profil & Rolle")
-    set_name_active_profile = st.selectbox("Profil auswählen:", data_profiles[["Name"]], key="analyse_profil_auswahl_1")
+    set_name_active_profile = st.selectbox("Profil auswählen:", data_profiles[["Name"]])
     set_id_active_profile = data_profiles.index[data_profiles["Name"] == set_name_active_profile][0]
 
-    # Überprüfen, Antworten für das Profil vorhanden sind
+    # Überprüfen, ob Antworten für das Profil vorhanden sind
     if set_id_active_profile not in data_answers["Profil-ID"].values:
         st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
         st.stop()
@@ -110,11 +116,27 @@ with st.container():
 
         st.write(f"Letzte Aktualisierung der Rolle: {formatted_last_update_time_active_bedarf}")
 
+    # Überprüfen, ob eine Rolle ausgewählt wurde
+    if not set_role:
+        st.warning("Bitte wählen Sie eine Rolle aus.")
+        st.stop()
+
 
 # -Datenanalyse-
 # Cluster-Werte für das aktive Profil und die aktive Rolle filtern
 cluster_values_answers_for_profile = cluster_values_answers[cluster_values_answers["Profil-ID"] == set_id_active_profile]
 cluster_values_bedarfe_for_role = cluster_values_bedarfe[cluster_values_bedarfe["Rollen-Name"] == set_role]
+
+# Aktuelle Werte des Profils und der Rolle extrahieren
+cluster_values_answers_for_profile_current = cluster_values_answers_full[cluster_values_answers_full["Profil-ID"] == set_id_active_profile]
+cluster_values_answers_for_profile_current = cluster_values_answers_for_profile_current.sort_values("Speicherzeitpunkt").iloc[[-1]]
+cluster_values_answers_for_profile_current["Jahr"] = "Aktuell"
+cluster_values_answers_for_profile_current.drop(columns=["Rollen-Name", "Speicherzeitpunkt"], inplace=True)
+cluster_values_bedarfe_for_role_current = cluster_values_bedarfe_full[cluster_values_bedarfe_full["Rollen-Name"] == set_role]
+cluster_values_bedarfe_for_role_current = cluster_values_bedarfe_for_role_current.sort_values("Speicherzeitpunkt").iloc[[-1]]
+cluster_values_bedarfe_for_role_current.drop(columns=["Rollen-ID", "Speicherzeitpunkt"], inplace=True)
+cluster_values_bedarfe_for_role_current["Jahr"] = "Aktuell"
+
 
 # X und Y für die Regression definieren
 # Eingabewerte (Jahre)
@@ -144,13 +166,9 @@ predictions_answers['Jahr'] = future_years.flatten()
 predictions_bedarfe['Jahr'] = future_years.flatten()
 predictions_answers['Profil-ID'] = set_id_active_profile
 predictions_bedarfe['Rollen-Name'] = set_role
-cluster_values_answers_for_profile_with_predictions = pd.concat([cluster_values_answers_for_profile, predictions_answers], ignore_index=True)
-cluster_values_bedarfe_for_role_with_predictions = pd.concat([cluster_values_bedarfe_for_role, predictions_bedarfe], ignore_index=True) 
+cluster_values_answers_for_profile_with_predictions = pd.concat([cluster_values_answers_for_profile, predictions_answers, cluster_values_answers_for_profile_current], ignore_index=True)
+cluster_values_bedarfe_for_role_with_predictions = pd.concat([cluster_values_bedarfe_for_role, predictions_bedarfe, cluster_values_bedarfe_for_role_current], ignore_index=True) 
 
-# TODO: Temporäre Ausgabe entfernen
-st.subheader("Datenausgabe (temporär)")
-st.write("Daten vor der Prognose:", cluster_values_bedarfe_test[cluster_values_bedarfe_test["Rollen-Name"] == set_role])
-st.write("Daten nach der Prognose:", cluster_values_bedarfe_for_role_with_predictions)
 
 with st.container():
     left, right = st.columns(2)
@@ -174,11 +192,20 @@ with st.container():
                 CLUSTER_COLUMNS
             ].values.tolist()[0]
 
+            cluster_values_answers_for_figure_current = cluster_values_answers_for_profile_with_predictions.loc[
+                cluster_values_answers_for_profile_with_predictions['Jahr'] == "Aktuell",
+                CLUSTER_COLUMNS
+            ].values.tolist()[0]
+
+            cluster_values_bedarfe_for_figure_current = cluster_values_bedarfe_for_role_with_predictions.loc[
+                cluster_values_bedarfe_for_role_with_predictions['Jahr'] == "Aktuell",
+                CLUSTER_COLUMNS
+            ].values.tolist()[0]
+
             # -Netzdiagramm definieren-
             fig = go.Figure()
 
             # Fläche Bedarf
-            # TODO: Hier muss die Logik für die Bedarfs-Prognose implementiert werden
             fig.add_trace(go.Scatterpolar(
                 r=cluster_values_bedarfe_for_figure + [cluster_values_bedarfe_for_figure[0]],
                 theta=unique_cluster_names + [unique_cluster_names[0]],
@@ -197,6 +224,27 @@ with st.container():
                 line=dict(color='blue'),
                 fillcolor='rgba(0, 0, 255, 0.6)',  # Blau mit Transparenz
             ))
+
+            # Aktuelle Werte des Profils und der Rolle im Hintergrund anzeigen
+            if set_year != "Aktuell":
+
+                fig.add_trace(go.Scatterpolar(
+                    r=cluster_values_bedarfe_for_figure_current + [cluster_values_bedarfe_for_figure_current[0]],
+                    theta=unique_cluster_names + [unique_cluster_names[0]],
+                    fill='toself',
+                    name=f"{set_role} (Aktuell)",
+                    line=dict(color='red', dash='dash'),
+                    fillcolor='rgba(173, 216, 230, 0)',  # Keine Füllung
+                ))
+
+                fig.add_trace(go.Scatterpolar(
+                    r=cluster_values_answers_for_figure_current + [cluster_values_answers_for_figure_current[0]],
+                    theta=unique_cluster_names + [unique_cluster_names[0]],
+                    fill='toself',
+                    name=f"{set_name_active_profile} (Aktuell)",
+                    line=dict(color='blue', dash='dash'),
+                    fillcolor='rgba(173, 216, 230, 0)',  # Keine Füllung
+                ))
 
             fig.update_layout(
                 polar=dict(
