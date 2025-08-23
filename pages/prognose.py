@@ -1,16 +1,16 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
 
+from config import (
+    GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_PROFILES, 
+    COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE, 
+    CLUSTER_COLUMNS, YEARS_TO_PREDICT
+)
 from functions.menu import default_menu
-from functions.data import get_cluster_names, get_selected_cluster_values, get_latest_update_time, \
-    get_bedarfe_for_role, get_latest_update_time_bedarf, invert_corresponding_answers
 from functions.session_state import check_mode
-from config import GOOGLE_SHEET_ANSWERS, COLUMN_TIMESTAMP, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE
 from functions.database import get_dataframe_from_gsheet
 
 # -Seitenkonfiguration-
@@ -22,108 +22,135 @@ st.title("Prognose")
 
 # -Tabelle für Profile verknüpfen-
 data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
-data_answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP)
-data_answers.index = pd.to_datetime(data_answers.index, format='%d.%m.%Y %H:%M')
-data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP)
-data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
+data_answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+data_answers["Speicherzeitpunkt"] = pd.to_datetime(data_answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
+data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+data_bedarfe["Speicherzeitpunkt"] = pd.to_datetime(data_bedarfe["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
 fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=';', encoding='utf-8')
 
-# Jahre, die in der Prognose berücksichtigt werden sollen
-years_to_predict = [2026, 2027, 2028, 2029, 2030]
 
 
 # -Daten vorbereiten-
 # Fragebogen anpassen
-fragebogen_reduced = fragebogen[["Frage-ID", "Cluster-Nummer", "Cluster-Name"]]
+fragebogen_reduced = fragebogen.copy()
+fragebogen_reduced = fragebogen_reduced[["Frage-ID", "Cluster-Nummer", "Cluster-Name"]]
 unique_cluster_names = fragebogen_reduced["Cluster-Name"].unique().tolist()
 unique_cluster_ids = fragebogen_reduced["Cluster-Nummer"].unique().tolist()
 
+# Bedarfe laden
+cluster_values_bedarfe = data_bedarfe.copy()
+
 # Antworten laden und Cluster-Werte berechnen
-cluster_values_answers = data_answers[["index", "Profil-ID", "Rolle"]]
+cluster_values_answers = data_answers.copy()
+cluster_values_answers = cluster_values_answers[["Speicherzeitpunkt", "Profil-ID", "Rollen-Name"]]
 for cluster_id in unique_cluster_ids:
     current_question_ids = fragebogen_reduced[fragebogen_reduced["Cluster-Nummer"] == cluster_id]["Frage-ID"].tolist()
     cluster_values_answers[f"cluster{cluster_id}"] = data_answers[current_question_ids].mean(axis=1)
 
 # Spalte Jahr hinzufügen
-cluster_values_answers['Jahr'] = cluster_values_answers.index.year
-cluster_values_answers_test = cluster_values_answers.copy()
+cluster_values_answers["Jahr"] = cluster_values_answers["Speicherzeitpunkt"].dt.year
+cluster_values_bedarfe["Jahr"] = cluster_values_bedarfe["Speicherzeitpunkt"].dt.year
 
-# Spalten "index" und "Rolle" entfernen
-cluster_values_answers = cluster_values_answers.drop(columns=['index', 'Rolle'])
+# TODO: Löschen, Kopie der Daten für temporäre Ausgabe
+cluster_values_answers_test = cluster_values_answers.copy()
+cluster_values_bedarfe_test = cluster_values_bedarfe.copy()
+
+# Spalten entfernen
+cluster_values_answers = cluster_values_answers.drop(columns=["Rollen-Name", "Speicherzeitpunkt"])
+cluster_values_bedarfe = cluster_values_bedarfe.drop(columns=["Rollen-ID", "Speicherzeitpunkt"])
 
 # Aggregieren nach Jahr und Profil-ID durch Berechnung des Mittelwerts für numerische Spalten
-cluster_values_answers = cluster_values_answers.groupby(['Jahr', 'Profil-ID']).mean(numeric_only=True)
+cluster_values_answers = cluster_values_answers.groupby(["Jahr", "Profil-ID"]).mean(numeric_only=True)
+cluster_values_bedarfe = cluster_values_bedarfe.groupby(["Jahr", "Rollen-Name"]).mean(numeric_only=True)
 
 # Sortieren nach Profil-ID und Jahr
-cluster_values_answers = cluster_values_answers.sort_values(by=['Profil-ID', 'Jahr']).reset_index()
+cluster_values_answers = cluster_values_answers.sort_values(by=["Profil-ID", "Jahr"]).reset_index()
+cluster_values_bedarfe = cluster_values_bedarfe.sort_values(by=["Rollen-Name", "Jahr"]).reset_index()
 
+st.write("Daten Cluster-Werte Antworten (temporär):", cluster_values_answers)
+st.write("Daten Cluster-Werte Bedarfe (temporär):", cluster_values_bedarfe)
 
-# -Seitenaufbau-
+# -Abschnitt Auswahl Profil & Rolle-
 with st.container():
     # Profil auswählen
-    st.subheader("Aufwahl Profil & Bedarf")
+    st.subheader("Aufwahl Profil & Rolle")
     set_name_active_profile = st.selectbox("Profil auswählen:", data_profiles[["Name"]], key="analyse_profil_auswahl_1")
     set_id_active_profile = data_profiles.index[data_profiles["Name"] == set_name_active_profile][0]
-    st.write(f"Profil-ID: {int(set_id_active_profile)}")
 
     # Überprüfen, Antworten für das Profil vorhanden sind
     if set_id_active_profile not in data_answers["Profil-ID"].values:
         st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
         st.stop()
 
-    # Letzten Aktualisierungszeitpunkt des Profils anzeigen
-    #set_update_time_active_profile = get_latest_update_time(set_id_active_profile)
-    # Angenommen, set_id_active_profile ist definiert
-    last_update_time_active_profile = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile].sort_index().index[-1]
-    st.write(f"Letzte Aktualisierung des Profils: {last_update_time_active_profile}")
+    # Letzten Aktualisierungszeitpunkt des Profils ausgeben
+    last_update_time_active_profile = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile].sort_values("Speicherzeitpunkt")["Speicherzeitpunkt"].values[-1]
+    formatted_last_update_time_active_profile = pd.Timestamp(last_update_time_active_profile).strftime("%d.%m.%Y")
 
-    # Aktuelle Rolle anzeigen
-    current_role = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile, "Rolle"].values[-1]
+    # Aktuelle Rolle ausgeben
+    current_role = data_profiles["Rollen-Name"].loc[set_id_active_profile]
+
+    # Meta-Daten ausgeben
+    st.write(f"Profil-ID: {int(set_id_active_profile)}")
+    st.write(f"Letzte Aktualisierung des Profils: {formatted_last_update_time_active_profile}")
     st.write(f"Aktuelle Rolle: {current_role if not pd.isna(current_role) else 'Keine Rolle zugewiesen'}")
+    st.markdown("")
 
-    # Bedarf auswählen; aktuelle Rolle als Standardwert
-    unique_roles = data_bedarfe["Rolle"].unique().tolist()
+    # Rolle auswählen; aktuelle Rolle als Standardwert
+    unique_roles = data_bedarfe["Rollen-Name"].unique().tolist()
     if current_role in unique_roles:
         index_role = unique_roles.index(current_role)
     else:
         index_role = None
-    set_role = st.selectbox(label="Bedarfs-Rolle anpassen:", options=unique_roles, index=index_role, placeholder="Rolle auswählen")
+    set_role = st.selectbox(label="Rolle auswählen:", options=unique_roles, index=index_role, placeholder="Rolle auswählen")
 
-    # Letzten Aktualisierungszeitpunkt des Bedarfs anzeigen
+    # Letzten Aktualisierungszeitpunkt der Rolle anzeigen
     if set_role:
-        last_update_time_active_bedarf = data_bedarfe.loc[data_bedarfe["Rolle"] == set_role].sort_index().index[-1]
-        st.write(f"Letzte Aktualisierung der Bedarfs-Rolle: {last_update_time_active_bedarf}")
+        last_update_time_active_bedarf = data_bedarfe.loc[data_bedarfe["Rollen-Name"] == set_role].sort_values("Speicherzeitpunkt")["Speicherzeitpunkt"].values[-1]
+        formatted_last_update_time_active_bedarf = pd.Timestamp(last_update_time_active_bedarf).strftime("%d.%m.%Y")
+
+        st.write(f"Letzte Aktualisierung der Rolle: {formatted_last_update_time_active_bedarf}")
 
 
 # -Datenanalyse-
-# Cluster-Werte für das aktive Profil filtern
+# Cluster-Werte für das aktive Profil und die aktive Rolle filtern
 cluster_values_answers_for_profile = cluster_values_answers[cluster_values_answers["Profil-ID"] == set_id_active_profile]
+cluster_values_bedarfe_for_role = cluster_values_bedarfe[cluster_values_bedarfe["Rollen-Name"] == set_role]
 
 # X und Y für die Regression definieren
-cluster_columns = [col for col in cluster_values_answers_for_profile.columns if col.startswith('cluster')]
 # Eingabewerte (Jahre)
-X = cluster_values_answers_for_profile['Jahr'].values.reshape(-1, 1)
+x_answers = cluster_values_answers_for_profile['Jahr'].values.reshape(-1, 1)
+x_bedarfe = cluster_values_bedarfe_for_role['Jahr'].values.reshape(-1, 1)
 # Zielwerte (Werte)
-Y = cluster_values_answers_for_profile[cluster_columns].values
+y_bedarfe = cluster_values_bedarfe_for_role[CLUSTER_COLUMNS].values
+y_answers = cluster_values_answers_for_profile[CLUSTER_COLUMNS].values
 
 # Lineare Regression modellieren
-model = LinearRegression()
-model.fit(X, Y)
+model_answers = LinearRegression()
+model_bedarfe = LinearRegression()
+model_answers.fit(x_answers, y_answers)
+model_bedarfe.fit(x_bedarfe, y_bedarfe)
 
 # Vorhersagen machen
-future_years = np.array(years_to_predict).reshape(-1 ,1)
-predictions_np = model.predict(future_years)
-predictions = pd.DataFrame(predictions_np, columns=cluster_columns)
-predictions = predictions.mask(predictions < 1, other=1)
-predictions = predictions.mask(predictions > 5, other=5)
-predictions['Jahr'] = future_years.flatten()
-predictions['Profil-ID'] = set_id_active_profile
-cluster_values_answers_for_profile_with_predictions = pd.concat([cluster_values_answers_for_profile, predictions], ignore_index=True)
+future_years = np.array(YEARS_TO_PREDICT).reshape(-1 ,1)
+predictions_np_answers = model_answers.predict(future_years)
+predictions_np_bedarfe = model_bedarfe.predict(future_years)
+predictions_answers = pd.DataFrame(predictions_np_answers, columns=CLUSTER_COLUMNS)
+predictions_bedarfe = pd.DataFrame(predictions_np_bedarfe, columns=CLUSTER_COLUMNS)
+predictions_answers = predictions_answers.mask(predictions_answers < 1, other=1)
+predictions_bedarfe = predictions_bedarfe.mask(predictions_bedarfe < 1, other=1)
+predictions_answers = predictions_answers.mask(predictions_answers > 5, other=5)
+predictions_bedarfe = predictions_bedarfe.mask(predictions_bedarfe > 5, other=5)
+predictions_answers['Jahr'] = future_years.flatten()
+predictions_bedarfe['Jahr'] = future_years.flatten()
+predictions_answers['Profil-ID'] = set_id_active_profile
+predictions_bedarfe['Rollen-Name'] = set_role
+cluster_values_answers_for_profile_with_predictions = pd.concat([cluster_values_answers_for_profile, predictions_answers], ignore_index=True)
+cluster_values_bedarfe_for_role_with_predictions = pd.concat([cluster_values_bedarfe_for_role, predictions_bedarfe], ignore_index=True) 
 
 # TODO: Temporäre Ausgabe entfernen
 st.subheader("Datenausgabe (temporär)")
-st.write("Daten vor der Prognose:", cluster_values_answers_test[cluster_values_answers_test["Profil-ID"] == set_id_active_profile])
-st.write("Daten nach der Prognose:", cluster_values_answers_for_profile_with_predictions)
+st.write("Daten vor der Prognose:", cluster_values_bedarfe_test[cluster_values_bedarfe_test["Rollen-Name"] == set_role])
+st.write("Daten nach der Prognose:", cluster_values_bedarfe_for_role_with_predictions)
 
 with st.container():
     left, right = st.columns(2)
@@ -134,12 +161,17 @@ with st.container():
             st.subheader("Netzdiagramm Prognose")
 
             # Jahr zum Anzeigen der Werte auswählen
-            set_year = st.segmented_control(label="Jahr auswählen", options=years_to_predict, default=years_to_predict[0], label_visibility="collapsed")
+            set_year = st.segmented_control(label="Jahr auswählen", options=["Aktuell"] + YEARS_TO_PREDICT, default="Aktuell", label_visibility="collapsed")
 
             # Cluster-Werte für das ausgewählte Jahr filtern und in Liste umwandeln
-            cluster_values_for_figure = cluster_values_answers_for_profile_with_predictions.loc[
+            cluster_values_answers_for_figure = cluster_values_answers_for_profile_with_predictions.loc[
                 cluster_values_answers_for_profile_with_predictions['Jahr'] == set_year,
-                cluster_columns
+                CLUSTER_COLUMNS
+            ].values.tolist()[0]
+
+            cluster_values_bedarfe_for_figure = cluster_values_bedarfe_for_role_with_predictions.loc[
+                cluster_values_bedarfe_for_role_with_predictions['Jahr'] == set_year,
+                CLUSTER_COLUMNS
             ].values.tolist()[0]
 
             # -Netzdiagramm definieren-
@@ -147,13 +179,21 @@ with st.container():
 
             # Fläche Bedarf
             # TODO: Hier muss die Logik für die Bedarfs-Prognose implementiert werden
+            fig.add_trace(go.Scatterpolar(
+                r=cluster_values_bedarfe_for_figure + [cluster_values_bedarfe_for_figure[0]],
+                theta=unique_cluster_names + [unique_cluster_names[0]],
+                fill='toself',
+                name=set_role,
+                line=dict(color="red"),
+                fillcolor="rgba(255, 0, 0, 0.3)",  # Rot mit Transparenz
+            ))
 
             # Fläche Profil
             fig.add_trace(go.Scatterpolar(
-                r=cluster_values_for_figure + [cluster_values_for_figure[0]],
+                r=cluster_values_answers_for_figure + [cluster_values_answers_for_figure[0]],
                 theta=unique_cluster_names + [unique_cluster_names[0]],
                 fill='toself',
-                name='Aktives Profil',
+                name=set_name_active_profile,
                 line=dict(color='blue'),
                 fillcolor='rgba(0, 0, 255, 0.6)',  # Blau mit Transparenz
             ))
@@ -180,7 +220,7 @@ with st.container():
 
             for training_programs in set_active_training_programs:
                 # Erstelle ein Dropdown-Menü für das Jahr dieser Option
-                training_programs_years = st.multiselect(f"Wähle die Jahre für {training_programs}:", years_to_predict)
+                training_programs_years = st.multiselect(f"Wähle die Jahre für {training_programs}:", YEARS_TO_PREDICT)
 
                 selected_years[training_programs] = training_programs_years
 

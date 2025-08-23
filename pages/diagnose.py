@@ -73,16 +73,16 @@ with col1:
 with col2:
     st.subheader("Bedarf Auswahl:")
 
-    unique_bedarf_roles = data_bedarfe["Rolle"].unique().tolist()
+    unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
 
     # Rolle zum ausgewählten Zeitpunkt ermitteln
     default_role_index = 0
-    if len(filtered_update_time) > 0 and "Rolle" in data_answers.columns:
+    if len(filtered_update_time) > 0 and "Rollen-Name" in data_answers.columns:
         try:
             # Verwende den letzten Zeitpunkt als Standard
             selected_timestamp = filtered_update_time[-1]
             role_mask = (data_answers.index == selected_timestamp) & (data_answers["Profil-ID"] == set_id_active_profile)
-            role_rows = data_answers.loc[role_mask, "Rolle"]
+            role_rows = data_answers.loc[role_mask, "Rollen-Name"]
             if len(role_rows) > 0:
                 profile_role = role_rows.iloc[0]
                 if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
@@ -99,7 +99,7 @@ with col2:
     
     # Zeitpunkt auswählen
     filtered_timestamps_bedarf = data_bedarfe.index[
-        data_bedarfe["Rolle"] == set_bedarf_role
+        data_bedarfe["Rollen-Name"] == set_bedarf_role
     ]
     set_first_timestamp_bedarf = st.selectbox(
         "Ersten Zeitpunkt auswählen:",

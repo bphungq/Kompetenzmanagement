@@ -56,6 +56,15 @@ COLUMN_TIMESTAMP = "Speicherzeitpunkt"
 COLUMN_PROFILE_ID = "Profil-ID"
 COLUMN_INDEX = "index"
 
+
+# Spaltennamen für die Cluster-Werte
+CLUSTER_COLUMNS = ["cluster1", "cluster2","cluster3", "cluster4", "cluster5", "cluster6", "cluster7", "cluster8", "cluster9", "cluster10", "cluster11"]
+
+# Jahre, die in der Prognose berücksichtigt werden sollen
+YEARS_TO_PREDICT = [2026, 2027, 2028, 2029, 2030]
+
+
+# Texte für Fragebogen
 INTRODUCTION_TEXT = '''Herzlich willkommen zur Kompetenzbefragung im Rahmen des Forschungsprojekts pro-kom!  
   
 Ziel dieser Befragung ist es, ein besseres Verständnis dafür zu gewinnen, welche Kompetenzen in kleinen und mittleren Unternehmen (KMU) aktuell vorhanden sind – und welche künftig benötigt werden. Die Ergebnisse der Befragung bilden die Grundlage für die Entwicklung eines Prognosetools, das Unternehmen dabei unterstützt, frühzeitig auf zukünftige Kompetenzanforderungen zu reagieren. \n Mit Ihrer Teilnahme leisten Sie einen wertvollen Beitrag dazu, Unternehmen zukunftssicher aufzustellen. Gleichzeitig erhalten Sie am Ende der Befragung eine persönliche Rückmeldung über Ihre Kompetenzen sowie eine Einschätzung Ihrer individuellen Entwicklungspotenziale. \n In dieser Befragung werden verschiedene Kompetenzen abgefragt, darunter z. B. Fachkompetenz, Resilienz, Führungskompetenz, analytisches Denken und kommunikative Fähigkeiten. \n Die Teilnahme dauert ca. 40 Minuten. Die Daten werden ausschließlich für die genannten Forschungszwecke verarbeitet. Ihre Angaben werden vertraulich behandelt und gemäß den geltenden Datenschutzvorschriften (insbesondere DSGVO) gespeichert. Die Ergebnisse werden grundsätzlich in aggregierter Form ausgewertet. Eine Identifikation einzelner Personen ist dabei nicht möglich.  

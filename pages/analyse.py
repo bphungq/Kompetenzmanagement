@@ -75,16 +75,16 @@ with col2:
     st.subheader("Bedarf Auswahl:")
 
     # Bedarf auswählen #format_func=lambda x: f"Profil {x}"
-    unique_bedarf_roles = data_bedarfe["Rolle"].unique().tolist()
+    unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
     
     # Rolle zum ausgewählten Zeitpunkt ermitteln
     default_role_index = 0
-    if len(filtered_update_time) > 0 and "Rolle" in data_answers.columns:
+    if len(filtered_update_time) > 0 and "Rollen-Name" in data_answers.columns:
         try:
             # Verwende den letzten Zeitpunkt als Standard
             selected_timestamp = filtered_update_time[-1]
             role_mask = (data_answers.index == selected_timestamp) & (data_answers["Profil-ID"] == set_id_active_profile)
-            role_rows = data_answers.loc[role_mask, "Rolle"]
+            role_rows = data_answers.loc[role_mask, "Rollen-Name"]
             if len(role_rows) > 0:
                 profile_role = role_rows.iloc[0]
                 if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
@@ -98,7 +98,7 @@ with col2:
 
     # Zeitpunkt auswählen
     filtered_timestamps_bedarf = data_bedarfe.index[
-        data_bedarfe["Rolle"] == set_bedarf_role
+        data_bedarfe["Rollen-Name"] == set_bedarf_role
     ]
     set_timestamp_bedarf = st.selectbox(
         "Zeitpunkt auswählen:", filtered_timestamps_bedarf, key="analyse_zeitpunkt_2"
@@ -250,12 +250,12 @@ with st.container():
             st.write("Zeitpunkte der vorhandenen Daten:")
             st.markdown("\n".join([f"- {ts}" for ts in filtered_update_time]))
             role_value = None
-            if "Rolle" in data_answers.columns:
+            if "Rollen-Name" in data_answers.columns:
                 try:
                     role_mask = (
                         data_answers.index == set_update_time_active_profile
                     ) & (data_answers["Profil-ID"] == set_id_active_profile)
-                    role_rows = data_answers.loc[role_mask, "Rolle"]
+                    role_rows = data_answers.loc[role_mask, "Rollen-Name"]
                     if len(role_rows) > 0:
                         role_value = role_rows.iloc[0]
                 except Exception:
@@ -283,13 +283,13 @@ with st.container():
             
             # Rollenverlauf Tabelle
             with st.expander("Rollenverlauf"):
-                if "Rolle" in data_answers.columns:
+                if "Rollen-Name" in data_answers.columns:
                     # Daten für das ausgewählte Profil filtern
                     profile_data = data_answers[data_answers["Profil-ID"] == set_id_active_profile]
                     
                     if not profile_data.empty:
                         # Spalten Speicherzeitpunkt und Rolle auswählen
-                        role_history = profile_data[["Rolle"]].copy()
+                        role_history = profile_data[["Rollen-Name"]].copy()
                         role_history.index.name = "Speicherzeitpunkt"
                         role_history = role_history.reset_index()
                         

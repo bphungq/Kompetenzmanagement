@@ -48,11 +48,11 @@ def submenu_roles():
             edited_df = st.data_editor(
                 data = filtered_answers,
                 hide_index= True,
-                column_order= ("Profil-ID", "Speicherzeitpunkt", "Rolle"),
+                column_order= ("Profil-ID", "Speicherzeitpunkt", "Rollen-Name"),
                 disabled = ("Profil-ID", "Speicherzeitpunkt"),
                 column_config = {
-                    "Rolle": st.column_config.TextColumn(
-                        label="Rolle",
+                    "Rollen-Name": st.column_config.TextColumn(
+                        label="Rollen-Name",
                         help="Hier können Sie die Rolle für das Profil festlegen.",
                         max_chars=50
                     )

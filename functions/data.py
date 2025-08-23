@@ -273,7 +273,7 @@ def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
 
     # Filtere nach Rolle und Zeitpunkt
     filtered_bedarf = bedarfe_df[
-        (bedarfe_df["Rolle"] == role) & (bedarfe_df["Speicherzeitpunkt"] == timestamp)
+        (bedarfe_df["Rollen-Name"] == role) & (bedarfe_df["Speicherzeitpunkt"] == timestamp)
     ]
 
     if filtered_bedarf.empty:
@@ -320,7 +320,7 @@ def get_latest_update_time_bedarf(role):
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
     bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
-    filtered_bedarfe = bedarfe[bedarfe["Rolle"] == role]
+    filtered_bedarfe = bedarfe[bedarfe["Rollen-Name"] == role]
     if len(filtered_bedarfe) == 0:
         return None
     sorted_bedarfe = filtered_bedarfe.sort_values(by="Speicherzeitpunkt", ascending=False)  # type: ignore
@@ -422,11 +422,11 @@ def calculate_time_differences_bedarfe(
     bedarfe_df = data_bedarfe
     # Werte für beide Zeitpunkte und Profil-ID filtern
     first_row = bedarfe_df[
-        (bedarfe_df["Rolle"] == role)
+        (bedarfe_df["Rollen-Name"] == role)
         & (bedarfe_df["Speicherzeitpunkt"] == first_timestamp)
     ]
     second_row = bedarfe_df[
-        (bedarfe_df["Rolle"] == role)
+        (bedarfe_df["Rollen-Name"] == role)
         & (bedarfe_df["Speicherzeitpunkt"] == second_timestamp)
     ]
     cluster_names = get_cluster_names()
