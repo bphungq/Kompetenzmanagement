@@ -35,7 +35,8 @@ def default_menu():
         st.sidebar.page_link("pages/diagnose.py", label="Diagnose")
         st.sidebar.page_link("pages/prognose.py", label="Prognose")
         st.sidebar.page_link("pages/user_management.py", label="Profilverwaltung")
-        st.sidebar.page_link("pages/admin.py", label="Admin")
+        st.sidebar.page_link("pages/admin.py", label="Administration")
+        st.sidebar.page_link("pages/fragebogen_start.py", label="Fragebogen")
         st.sidebar.page_link("pages/export.py", label="Export")
     elif st.session_state.mode == "fragebogen":
         st.sidebar.header("Navigation")

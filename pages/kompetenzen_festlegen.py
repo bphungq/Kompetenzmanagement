@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 from functions.menu import no_menu
+from functions.session_state import check_mode
 
+# -Seitenkonfiguration-
 st.set_page_config(page_title="Kompetenzen festlegen")
-
+check_mode()
 no_menu()
 
+# -Seiteninhalt-
 st.title("Kompetenzen festlegen")
 st.write("Keine Funktionalität implementiert.")
 st.write("")

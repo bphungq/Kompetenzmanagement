@@ -18,10 +18,11 @@ from functions.data import (
     get_cluster_values_for_correlation_matrix,
     calculate_development_gap,
 )
-
+from functions.session_state import check_mode
 
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Diagnose", layout="wide")
+check_mode()
 default_menu()
 
 # Konfiguration für Schriftgrößen der Diagrammtitel

@@ -9,12 +9,13 @@ from sklearn.preprocessing import PolynomialFeatures
 from functions.menu import default_menu
 from functions.data import get_cluster_names, get_selected_cluster_values, get_latest_update_time, \
     get_bedarfe_for_role, get_latest_update_time_bedarf, invert_corresponding_answers
-    
+from functions.session_state import check_mode
 from config import GOOGLE_SHEET_ANSWERS, COLUMN_TIMESTAMP, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE
 from functions.database import get_dataframe_from_gsheet
 
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Prognose", layout="wide")
+check_mode()
 default_menu()
 
 st.title("Prognose")

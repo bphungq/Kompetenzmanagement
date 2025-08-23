@@ -7,9 +7,10 @@ import os
 from functions.menu import default_menu
 
 st.set_page_config(page_title="Datengenerierung")
-st.title("Datengenerierung für Fragebogen-Datensätze")
 
 default_menu()
+
+st.title("Datengenerierung für Fragebogen-Datensätze")
 
 # Index bestimmen (fortlaufend)
 def get_next_index():

@@ -12,3 +12,8 @@ def clear_session_states_except_mode_and_debug_mode():
 def change_mode():
     if "mode" in st.session_state:
         st.session_state.mode = "fragebogen" if st.session_state.mode == "analyse" else "analyse"
+
+def check_mode():
+    if "mode" not in st.session_state:
+        st.session_state.mode = "analyse"
+        st.session_state.debug_mode = False

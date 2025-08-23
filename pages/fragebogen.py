@@ -5,11 +5,12 @@ import pytz
 from config import AMOUNT_QUESTIONS_PER_PAGE, OPTIONS_FORM, TRANSLATE_ANSWER_SAVE, TRANSLATE_ANSWER_INDEX, PATH_QUESTIONNAIRE, ADDITIONAL_INFORMATION_IDS, GOOGLE_SHEET_ANSWERS_FRAGEBOGEN, COLUMN_PROFILE_ID, GOOGLE_SHEET_PROFILES, COLUMN_INDEX
 from functions.menu import no_menu
 from functions.data import get_amount_questions, get_question_ids
-from functions.session_state import clear_session_states_except_mode_and_debug_mode
+from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 
+# -Seitenkonfiguration-
 st.set_page_config(page_title="Fragebogen")
-
+check_mode()
 no_menu()
 
 # -Profildaten einlesen-

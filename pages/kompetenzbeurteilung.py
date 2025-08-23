@@ -3,7 +3,11 @@ import pandas as pd
 from functions.menu import default_menu
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX
 from functions.database import get_dataframe_from_gsheet
+from functions.session_state import check_mode
 
+# -Seitenkonfiguration-
+st.set_page_config(page_title="Kompetenzbeurteilung")
+check_mode()
 default_menu()
 
 # -Tabelle für Profil verknüpfen-

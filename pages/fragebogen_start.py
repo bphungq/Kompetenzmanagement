@@ -5,12 +5,14 @@ from functions.user_management import create_profile
 from functions.initialize import initialize_fragebogen_einleitung
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID
 from functions.database import get_dataframe_from_gsheet
+from functions.session_state import check_mode
 
+# -Seitenkonfiguration-
 st.set_page_config(page_title="Fragebogen")
-
+check_mode()
 default_menu()
 
-# -Titel-
+# -Seiteninhalt-
 st.title("Fragebogen")
 
 begin_fragebogen = st.button(label="Fragebogen starten")

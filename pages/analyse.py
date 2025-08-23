@@ -22,11 +22,14 @@ from config import (
     GOOGLE_SHEET_BEDARFE,
 )
 from functions.database import get_dataframe_from_gsheet
+from functions.session_state import check_mode
 
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Analyse", layout="wide")
+check_mode()
 default_menu()
 
+# -Seiteninhalt-
 st.title("Analyse")
 
 # -Tabelle für Profile verknüpfen-

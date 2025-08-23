@@ -5,13 +5,14 @@ import pytz
 from config import INTRODUCTION_TEXT, CONSENT_TEXT, DEMOGRAPHY_TEXT, OPTIONS_INDUSTRY, INTRODUCTION_QUERRY, ADDITIONAL_INFORMATION_IDS, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID
 from functions.menu import no_menu
 from functions.data import get_amount_questions, get_question_ids
-from functions.session_state import clear_session_states_except_mode_and_debug_mode
+from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 from functions.user_management import create_profile
 from functions.initialize import initialize_fragebogen
 
+# -Seitenkonfiguration-
 st.set_page_config(page_title="Fragebogen")
-
+check_mode()
 no_menu()
 
 # -Funktionen-
