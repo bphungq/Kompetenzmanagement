@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import pairwise_distances
 
 from config import (
     GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_PROFILES, 
@@ -107,7 +108,7 @@ with st.container():
         index_role = unique_roles.index(current_role)
     else:
         index_role = None
-    set_role = st.selectbox(label="Rolle auswählen:", options=unique_roles, index=index_role, placeholder="Rolle auswählen")
+    set_role = st.selectbox(label="Anzuzeigende Rolle auswählen:", options=unique_roles, index=index_role, placeholder="Rolle auswählen")
 
     # Letzten Aktualisierungszeitpunkt der Rolle anzeigen
     if set_role:
@@ -192,15 +193,6 @@ with st.container():
                 CLUSTER_COLUMNS
             ].values.tolist()[0]
 
-            cluster_values_answers_for_figure_current = cluster_values_answers_for_profile_with_predictions.loc[
-                cluster_values_answers_for_profile_with_predictions['Jahr'] == "Aktuell",
-                CLUSTER_COLUMNS
-            ].values.tolist()[0]
-
-            cluster_values_bedarfe_for_figure_current = cluster_values_bedarfe_for_role_with_predictions.loc[
-                cluster_values_bedarfe_for_role_with_predictions['Jahr'] == "Aktuell",
-                CLUSTER_COLUMNS
-            ].values.tolist()[0]
 
             # -Netzdiagramm definieren-
             fig = go.Figure()
@@ -224,27 +216,6 @@ with st.container():
                 line=dict(color='blue'),
                 fillcolor='rgba(0, 0, 255, 0.6)',  # Blau mit Transparenz
             ))
-
-            # Aktuelle Werte des Profils und der Rolle im Hintergrund anzeigen
-            if set_year != "Aktuell":
-
-                fig.add_trace(go.Scatterpolar(
-                    r=cluster_values_bedarfe_for_figure_current + [cluster_values_bedarfe_for_figure_current[0]],
-                    theta=unique_cluster_names + [unique_cluster_names[0]],
-                    fill='toself',
-                    name=f"{set_role} (Aktuell)",
-                    line=dict(color='red', dash='dash'),
-                    fillcolor='rgba(173, 216, 230, 0)',  # Keine Füllung
-                ))
-
-                fig.add_trace(go.Scatterpolar(
-                    r=cluster_values_answers_for_figure_current + [cluster_values_answers_for_figure_current[0]],
-                    theta=unique_cluster_names + [unique_cluster_names[0]],
-                    fill='toself',
-                    name=f"{set_name_active_profile} (Aktuell)",
-                    line=dict(color='blue', dash='dash'),
-                    fillcolor='rgba(173, 216, 230, 0)',  # Keine Füllung
-                ))
 
             fig.update_layout(
                 polar=dict(
@@ -281,7 +252,69 @@ with st.container():
     # -Ähnlichkeitsmaß-
     with left:
         with st.container(border=False):
-            st.subheader("Ähnliche Profile")
+            st.subheader("Ähnlichste Profile")
+
+            # Selectbox für Ähnlichkeitsmaß
+            similarity_measure = st.selectbox(label="Ähnlichkeitsmaß auswählen:", options=["Euklidische Distanz", "Manhattan-Distanz"], index=0)
+
+            # Checkbox, ob nur unterschiedliche Rollen berücksichtigt werden sollen
+            different_roles = st.checkbox(label=f"Nur andere Rollen als die aktuelle Rolle ({current_role}) berücksichtigen", value=False)
+
+            # Tabelle für Ähnlichkeitsmaß vorbereiten
+            cluster_values_answers_similarity = cluster_values_answers_full.copy()
+
+            # Spalten für die Berechnung auswählen
+            cluster_values_answers_similarity = cluster_values_answers_similarity[CLUSTER_COLUMNS]
+
+            # Berechnung der Paarweisen Distanzen
+            if similarity_measure == "Euklidische Distanz":
+                metric = "euclidean"
+            else:
+                metric = "cityblock"
+            distances = pairwise_distances(cluster_values_answers_similarity, metric=metric)
+
+            # Ermittlung des index der aktuellen Antwort des gewählten Profils
+            set_answer_index = int(data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile].sort_values("Speicherzeitpunkt").index[-1])
+
+            # Finde die Distanzen zum ersten Profil
+            distances_to_set_profile_values = distances[set_answer_index]
+
+            # DataFrame mit Profil-ID, Rollen-Name und Distanzen erstellen
+            distances_to_set_profile_df = pd.DataFrame({
+                "Profil-ID": cluster_values_answers_full["Profil-ID"],
+                "Speicherzeitpunkt": cluster_values_answers_full["Speicherzeitpunkt"],
+                "Rollen-Name": cluster_values_answers_full["Rollen-Name"],
+                "Abstände": distances_to_set_profile_values 
+            })
+
+            # Zeilen mit Profil-ID des ausgewählten Profils entfernen
+            indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df["Profil-ID"] == set_id_active_profile].index
+            distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
+
+            # Nach Ähnlichkeit sortieren und jede Profil-ID nur einmal listen
+            distances_to_set_profile_df = distances_to_set_profile_df.sort_values("Abstände").drop_duplicates("Profil-ID")
+
+            # Profile mit gleicher Rolle entfernen, wenn die Checkbox aktiviert ist
+            if different_roles:
+                indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df["Rollen-Name"] == current_role].index
+                distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
+
+            # DataFrame nach Abständen sortieren und die 3 ähnlichsten Profile auswählen
+            most_similar_profiles = distances_to_set_profile_df.nsmallest(3, "Abstände")
+
+            # Ausgabe der ähnlichsten Profile
+            st.write("")
+            st.write("Die 3 ähnlichsten Profile sind:")
+            for index, row in most_similar_profiles.iterrows():
+                profile_id = int(row["Profil-ID"])
+                profile_name = data_profiles.loc[profile_id, "Name"] if profile_id in data_profiles.index else "Unbekannt"
+                role_name = row["Rollen-Name"] if pd.notna(row["Rollen-Name"]) else "Keine Rolle zugewiesen"
+                distance = row["Abstände"]
+                similarity = 100 - (row["Abstände"] / 13.27 * 100) if similarity_measure == "Euklidische Distanz" else 100 - (row["Abstände"] / 44 * 100)
+                # Maximale euklidische Distanz: Wurzel(11 * (5-1)²) = 13.27
+                # Maximale Manhattan-Distanz: 11 * (5-1) = 44
+                st.write(f"Profil-ID: {profile_id}, Name: {profile_name}, Rolle: {role_name}, Abstand: {distance:.2f}, Ähnlichkeit: {similarity:.2f}%")
+
 
     # -Rollentrendabschätzung-
     with right:
