@@ -59,22 +59,43 @@ with col1:
     set_first_timestamp_active_profile = st.selectbox(
         "Ersten Zeitpunkt auswählen:", filtered_update_time, key="erster_zeitpunkt_1"
     )
+
     set_second_timestamp_active_profile = st.selectbox(
         "Zweiten Zeitpunkt auswählen:",
-        filtered_update_time[-1],
+        filtered_update_time,
+        index=len(filtered_update_time) - 1 if len(filtered_update_time) > 0 else 0,
         key="zweiter_zeitpunkt_1",
+        help="Der zweite Zeitpunkt muss später sein als der erste Zeitpunkt, weil hier eine Differenz berechnet wird."
     )
 
 
 with col2:
     st.subheader("Bedarf Auswahl:")
 
-    # Bedarf auswählen
     unique_bedarf_roles = data_bedarfe["Rolle"].unique().tolist()
+
+    # Rolle zum ausgewählten Zeitpunkt ermitteln
+    default_role_index = 0
+    if len(filtered_update_time) > 0 and "Rolle" in data_answers.columns:
+        try:
+            # Verwende den letzten Zeitpunkt als Standard
+            selected_timestamp = filtered_update_time[-1]
+            role_mask = (data_answers.index == selected_timestamp) & (data_answers["Profil-ID"] == set_id_active_profile)
+            role_rows = data_answers.loc[role_mask, "Rolle"]
+            if len(role_rows) > 0:
+                profile_role = role_rows.iloc[0]
+                if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
+                    default_role_index = unique_bedarf_roles.index(profile_role)
+        except Exception:
+            default_role_index = 0
+
+    # Bedarf auswählen
+    
     set_bedarf_role = st.selectbox(
-        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, key="bedarf_auswahl_1"
+        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, index=default_role_index, key="bedarf_auswahl_1"
     )
 
+    
     # Zeitpunkt auswählen
     filtered_timestamps_bedarf = data_bedarfe.index[
         data_bedarfe["Rolle"] == set_bedarf_role
@@ -86,8 +107,10 @@ with col2:
     )
     set_second_timestamp_bedarf = st.selectbox(
         "Zweiten Zeitpunkt auswählen:",
-        filtered_timestamps_bedarf[-1],
+        filtered_timestamps_bedarf,
+        index=len(filtered_timestamps_bedarf) - 1 if len(filtered_timestamps_bedarf) > 0 else 0,
         key="zweiter_zeitpunkt_2",
+        help="Der zweite Zeitpunkt muss später sein als der erste Zeitpunkt, weil hier eine Differenz berechnet wird."
     )
 
 
@@ -96,7 +119,7 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    # Differenzen berechnen mit modularer Funktion
+    # Differenzen berechnen 
     differences_df = calculate_time_differences(
         set_id_active_profile,
         set_first_timestamp_active_profile,
@@ -104,8 +127,8 @@ with col1:
     )
 
     if not differences_df.empty:
-        # Diagramm mit modularer Funktion erstellen
-        title = f"IST Entwicklung: {set_second_timestamp_active_profile} - {set_first_timestamp_active_profile}"
+        # Diagramm Profil Entwicklung
+        title = f"Profil Entwicklung: {set_second_timestamp_active_profile} - {set_first_timestamp_active_profile}"
         fig = create_gap_analysis_chart(
             differences_df,
             title,
@@ -121,7 +144,7 @@ with col1:
 
 with col2:
 
-    # Differenzen für das Bedarfsprofil berechnen
+    # Differenzen Bedarf Entwicklung
     data_bedarfe = data_bedarfe.reset_index()
     differences_bedarf_df = calculate_time_differences_bedarfe(
         data_bedarfe,
@@ -149,18 +172,18 @@ col3, col4 = st.columns(2)
 
 with col3:
 
-    # Gap zwischen IST-Entwicklung und Bedarf-Entwicklung berechnen
+    # Gap zwischen Profil-Entwicklung und Bedarf-Entwicklung berechnen
     if not differences_df.empty and not differences_bedarf_df.empty:
         development_gap_df = calculate_development_gap(
             differences_df, differences_bedarf_df
         )
 
         if not development_gap_df.empty:
-            title = "Gap-Diagnose: IST vs. Bedarf Entwicklung"
+            title = "Gap-Diagnose: Profil vs. Bedarf Entwicklung"
             fig_gap = create_gap_analysis_chart(
                 development_gap_df,
                 title,
-                "Differenz (IST-Entwicklung - Bedarf-Entwicklung)",
+                "Differenz (Profil-Entwicklung - Bedarf-Entwicklung)",
                 title_font_size=16 + TITLE_FONT_SIZE_INCREASE,
             )
             if fig_gap:
@@ -171,7 +194,7 @@ with col3:
             st.warning("Keine Daten für die Gap-Diagnose verfügbar.")
     else:
         st.warning(
-            "Bitte stellen Sie sicher, dass sowohl IST- als auch Bedarf-Entwicklungsdaten verfügbar sind."
+            "Bitte stellen Sie sicher, dass sowohl Profil- als auch Bedarf-Entwicklungsdaten verfügbar sind."
         )
 
 with col4:

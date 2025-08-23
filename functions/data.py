@@ -458,14 +458,14 @@ def calculate_time_differences_bedarfe(
 
 def calculate_development_gap(ist_differences_df, bedarf_differences_df):
     """
-    Berechnet die Differenz zwischen IST-Entwicklung und Bedarf-Entwicklung.
+    Berechnet die Differenz zwischen Profil-Entwicklung und Bedarf-Entwicklung.
 
     Args:
-        ist_differences_df (pandas.DataFrame): DataFrame mit IST-Entwicklungsdifferenzen
+        ist_differences_df (pandas.DataFrame): DataFrame mit Profil-Entwicklungsdifferenzen
         bedarf_differences_df (pandas.DataFrame): DataFrame mit Bedarf-Entwicklungsdifferenzen
 
     Returns:
-        pandas.DataFrame: DataFrame mit Cluster-Namen und Differenzen (IST-Entwicklung - Bedarf-Entwicklung)
+        pandas.DataFrame: DataFrame mit Cluster-Namen und Differenzen (Profil-Entwicklung - Bedarf-Entwicklung)
     """
     if ist_differences_df.empty or bedarf_differences_df.empty:
         return pd.DataFrame()
@@ -474,7 +474,7 @@ def calculate_development_gap(ist_differences_df, bedarf_differences_df):
     ist_sorted = ist_differences_df.sort_values("Cluster").reset_index(drop=True)
     bedarf_sorted = bedarf_differences_df.sort_values("Cluster").reset_index(drop=True)
 
-    # Differenzen berechnen (IST-Entwicklung - Bedarf-Entwicklung)
+    # Differenzen berechnen (Profil-Entwicklung - Bedarf-Entwicklung)
     development_gaps = ist_sorted["Differenz"] - bedarf_sorted["Differenz"]
 
     # DataFrame erstellen
@@ -590,8 +590,8 @@ def get_gap_analysis_legend(analysis_type="analyse"):
     if analysis_type == "analyse":
         return """
         **Legende:**
-        - 🔴 **Rot**: Negative Abweichung (Ist < Bedarf) - Verbesserungspotential
-        - 🔵 **Blau**: Positive Abweichung (Ist > Bedarf) - Stärke
+        - 🔴 **Rot**: Negative Abweichung (Profil < Bedarf) - Verbesserungspotential
+        - 🔵 **Blau**: Positive Abweichung (Profil > Bedarf) - Stärke
         """
     elif analysis_type == "zeitvergleich":
         return """
@@ -602,8 +602,8 @@ def get_gap_analysis_legend(analysis_type="analyse"):
     elif analysis_type == "entwicklung_gap":
         return """
         **Legende:**
-        - 🔴 **Rot**: Negative Abweichung (IST-Entwicklung < Bedarf-Entwicklung) - Bedarf wächst schneller als IST
-        - 🟢 **Grün**: Positive Abweichung (IST-Entwicklung > Bedarf-Entwicklung) - IST wächst schneller als Bedarf
+        - 🔴 **Rot**: Negative Abweichung (Profil-Entwicklung < Bedarf-Entwicklung)
+        - 🟢 **Grün**: Positive Abweichung (Profil-Entwicklung > Bedarf-Entwicklung)
         """
     else:
         return ""

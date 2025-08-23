@@ -56,17 +56,41 @@ with col1:
     filtered_update_time = data_answers.index[
         data_answers["Profil-ID"] == set_id_active_profile
     ]
-    set_update_time_active_profile = st.selectbox(
-        "Zeitpunkt auswählen:", filtered_update_time, key="analyse_zeitpunkt_1"
-    )
+    
+    # Letzten Zeitpunkt als Standard auswählen
+    if len(filtered_update_time) > 0:
+        default_time_index = len(filtered_update_time) - 1
+        set_update_time_active_profile = st.selectbox(
+            "Zeitpunkt auswählen:", filtered_update_time, index=default_time_index, key="analyse_zeitpunkt_1"
+        )
+    else:
+        set_update_time_active_profile = st.selectbox(
+            "Zeitpunkt auswählen:", ["Keine Daten verfügbar"], key="analyse_zeitpunkt_1"
+        )
 
 with col2:
     st.subheader("Bedarf Auswahl:")
 
     # Bedarf auswählen #format_func=lambda x: f"Profil {x}"
     unique_bedarf_roles = data_bedarfe["Rolle"].unique().tolist()
+    
+    # Rolle zum ausgewählten Zeitpunkt ermitteln
+    default_role_index = 0
+    if len(filtered_update_time) > 0 and "Rolle" in data_answers.columns:
+        try:
+            # Verwende den letzten Zeitpunkt als Standard
+            selected_timestamp = filtered_update_time[-1]
+            role_mask = (data_answers.index == selected_timestamp) & (data_answers["Profil-ID"] == set_id_active_profile)
+            role_rows = data_answers.loc[role_mask, "Rolle"]
+            if len(role_rows) > 0:
+                profile_role = role_rows.iloc[0]
+                if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
+                    default_role_index = unique_bedarf_roles.index(profile_role)
+        except Exception:
+            default_role_index = 0
+    
     set_bedarf_role = st.selectbox(
-        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, key="bedarf_auswahl_1"
+        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, index=default_role_index, key="bedarf_auswahl_1"
     )
 
     # Zeitpunkt auswählen
@@ -101,38 +125,41 @@ with st.container():
             kategorien = get_cluster_names()
             kategorien_list = kategorien.tolist()
 
-            fig = go.Figure()
-            # Fläche Bedarf
-            fig.add_trace(
-                go.Scatterpolar(
-                    r=cluster_values_bedarf + [cluster_values_bedarf[0]],
-                    theta=kategorien_list + [kategorien_list[0]],
-                    fill="toself",
-                    name="Bedarfs Profil",
-                    line=dict(color="red"),
-                    fillcolor="rgba(255, 0, 0, 0.3)",  # Rot mit Transparenz
+            # Überprüfen, ob Daten verfügbar sind
+            if cluster_values_profil is not None and cluster_values_bedarf is not None:
+                fig = go.Figure()
+                # Fläche Bedarf
+                fig.add_trace(
+                    go.Scatterpolar(
+                        r=cluster_values_bedarf + [cluster_values_bedarf[0]],
+                        theta=kategorien_list + [kategorien_list[0]],
+                        fill="toself",
+                        name=set_bedarf_role,
+                        line=dict(color="red"),
+                        fillcolor="rgba(255, 0, 0, 0.3)",  # Rot mit Transparenz
+                    )
                 )
-            )
 
-            # Fläche Profil
-            fig.add_trace(
-                go.Scatterpolar(
-                    r=cluster_values_profil + [cluster_values_profil[0]],
-                    theta=kategorien_list + [kategorien_list[0]],
-                    fill="toself",
-                    name="Aktives Profil",
-                    line=dict(color="blue"),
-                    fillcolor="rgba(0, 0, 255, 0.6)",  # Blau mit Transparenz
+                # Fläche Profil
+                fig.add_trace(
+                    go.Scatterpolar(
+                        r=cluster_values_profil + [cluster_values_profil[0]],
+                        theta=kategorien_list + [kategorien_list[0]],
+                        fill="toself",
+                        name=set_name_active_profile,
+                        line=dict(color="blue"),
+                        fillcolor="rgba(0, 0, 255, 0.6)",  # Blau mit Transparenz
+                    )
                 )
-            )
 
-            fig.update_layout(
-                polar=dict(radialaxis=dict(range=[0, 5], visible=True)),
-                showlegend=True,
-                title="Netzdiagramm Kompetenzen & Bedarfe",
-            )
+                fig.update_layout(
+                    polar=dict(radialaxis=dict(range=[0, 5], visible=True)),
+                    showlegend=True,
+                )
 
-            st.plotly_chart(fig)
+                st.plotly_chart(fig)
+            else:
+                st.warning("Keine Daten für das Netzdiagramm verfügbar. Bitte überprüfen Sie die Auswahl.")
 
     # -Profilentwicklung Diagramm-
     with cols[1]:
@@ -159,7 +186,7 @@ with st.container():
                     x="Jahr",
                     y="Wert",
                     title=f"Entwicklung: {set_category}",
-                    labels={"Jahr": "Jahr", "Wert": "Wert (1-5)"},
+                    labels={"Jahr": "Jahr", "Wert": ""},
                     markers=True,
                 )
 
@@ -193,11 +220,11 @@ with st.container():
 
             if not differences_df.empty:
                 # GAP-Diagramm
-                title = f"Differenz: Ist (Profil {set_id_active_profile}) - Bedarf (Profil {set_bedarf_role})"
+                title = f""
                 fig = create_gap_analysis_chart(
                     differences_df,
                     title,
-                    "Differenz (Ist - Bedarf)",
+                    "Differenz (Profil - Bedarf)",
                     positive_color="blue",
                     show_legend=False,
                 )
@@ -250,3 +277,22 @@ with st.container():
             st.write(
                 f"Letzte Aktualisierung: {get_latest_update_time(set_id_active_profile)}"
             )
+            
+            # Rollenverlauf Tabelle
+            with st.expander("Rollenverlauf"):
+                if "Rolle" in data_answers.columns:
+                    # Daten für das ausgewählte Profil filtern
+                    profile_data = data_answers[data_answers["Profil-ID"] == set_id_active_profile]
+                    
+                    if not profile_data.empty:
+                        # Spalten Speicherzeitpunkt und Rolle auswählen
+                        role_history = profile_data[["Rolle"]].copy()
+                        role_history.index.name = "Speicherzeitpunkt"
+                        role_history = role_history.reset_index()
+                        
+                        # Tabelle anzeigen
+                        st.dataframe(role_history, use_container_width=True)
+                    else:
+                        st.write("Keine Rollendaten für dieses Profil verfügbar.")
+                else:
+                    st.write("Keine Rollenspalte in den Daten vorhanden.")
