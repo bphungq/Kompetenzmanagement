@@ -168,7 +168,7 @@ predictions_bedarfe['Jahr'] = future_years.flatten()
 predictions_answers['Profil-ID'] = set_id_active_profile
 predictions_bedarfe['Rollen-Name'] = set_role
 cluster_values_answers_for_profile_with_predictions = pd.concat([cluster_values_answers_for_profile, predictions_answers, cluster_values_answers_for_profile_current], ignore_index=True)
-cluster_values_bedarfe_for_role_with_predictions = pd.concat([cluster_values_bedarfe_for_role, predictions_bedarfe, cluster_values_bedarfe_for_role_current], ignore_index=True) 
+cluster_values_bedarfe_for_role_with_predictions = pd.concat([cluster_values_bedarfe_for_role, predictions_bedarfe, cluster_values_bedarfe_for_role_current], ignore_index=True)
 
 
 with st.container():
@@ -227,21 +227,32 @@ with st.container():
 
             st.plotly_chart(fig)
 
+            st.write(cluster_values_answers_for_profile_with_predictions)
+
 
     # -Kompetenzverbesserungsmaßnahmen-
     with right:
         with st.container(border=False):
             st.subheader("Kompetenzverbesserungsmaßnahmen")
 
-            training_programs = ["Einzelschulung", "Halbjährliche Schulung", "Jährliche Schulung", "Coaching"]
+            training_programs = ["Führungskräfte Coaching", "Forschungslehrgang", "Job Rotation", "Teambuilding", "Zeitmanagement Workshop", "Design Thinking Workshop"]
             set_active_training_programs = st.multiselect("Wähle Maßnahmen aus:", training_programs)
+
+            fuehrungs_coaching_values= np.array([0.0, 0.3, 0.0, 0.0, 0.3, 0.7, 0.0, 0.0, 0.3, 0.0, 0.0])
+            forschungslehrgang_values = np.array([0.3, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3])
+            job_rotation_values = np.array([0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.3, 0.3, 0.7, 0.0])
+            teambuilding_values = np.array([0.0, 0.7, 0.0, 0.7, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0])
+            zeitmanagement_values = np.array([0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.7, 0.0, 0.7, 0.3, 0.0])
+            design_thinking_values = np.array([0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.7])
             selected_years = {}
+
 
             for training_programs in set_active_training_programs:
                 # Erstelle ein Dropdown-Menü für das Jahr dieser Option
                 training_programs_years = st.multiselect(f"Wähle die Jahre für {training_programs}:", YEARS_TO_PREDICT)
 
                 selected_years[training_programs] = training_programs_years
+
 
 
 
@@ -322,9 +333,9 @@ with st.container():
             st.subheader("Rollentrendabschätzung")
 
             # Vektor der Forschungsergebnisse
-            metaanalyse_values = np.array([-0.4, -0.2, 0.0, 0.2, 0.4,
-                                      -0.4, -0.2, 0.0, 0.2,
-                                      -0.4, -0.2])
+            metaanalyse_values = np.array([0.2, 0.2, 0.4, -0.2, 0.0,
+                                      0.4, 0.4, 0.0, 0.2,
+                                      0.4, -0.2])
 
             # Checkbox, ob Forschungsergebnisse berücksichtigt werden sollen
             checkbox_metaanalyse = st.checkbox("Slider anhand von Forschungsergebnissen einstellen")
