@@ -75,6 +75,12 @@ with col1:
             "Zeitpunkt auswählen:", ["Keine Daten verfügbar"], key="analyse_zeitpunkt_1"
         )
 
+    # Rolle ausgeben
+    role_for_selection = data_answers.loc[(data_answers.index == set_update_time_active_profile) & (data_answers["Profil-ID"] == set_id_active_profile), "Rollen-Name"].values[0]
+    if pd.isna(role_for_selection):
+        role_for_selection = "Keine Rolle zugewiesen"
+    st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}")
+
 with col2:
     st.subheader("Bedarf Auswahl:")
 
