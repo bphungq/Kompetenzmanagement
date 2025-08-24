@@ -9,7 +9,7 @@ from functions.session_state import clear_session_states_except_mode_and_debug_m
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 
 # -Seitenkonfiguration-
-st.set_page_config(page_title="Fragebogen")
+st.set_page_config(page_title="Fragebogen", layout="wide")
 check_mode()
 no_menu()
 
@@ -145,11 +145,11 @@ with st.form("Fragebogen", enter_to_submit=False):
     st.write(f"Anzahl Fragen auf dieser Seite: {amount_questions_in_page}")
     question_ids_current_page = question_ids[(st.session_state.page - 1) * AMOUNT_QUESTIONS_PER_PAGE: ((st.session_state.page - 1) * AMOUNT_QUESTIONS_PER_PAGE) + amount_questions_in_page]
     for current_question_id in question_ids_current_page:
-        st.markdown("")
-        current_question_text = fragebogen.loc[fragebogen["Frage-ID"] == current_question_id, "Frage"].values[0]
-        st.markdown(body = current_question_text)
-        current_answer = st.session_state.current_answers[current_question_id]
-        radio_button = st.radio(label=f"Frage {current_question_id}", options=OPTIONS_FORM, index=TRANSLATE_ANSWER_INDEX[current_answer], key=f"answer_{current_question_id}", horizontal=True, label_visibility="collapsed")
+        with st.container(border=True):
+            current_question_text = fragebogen.loc[fragebogen["Frage-ID"] == current_question_id, "Frage"].values[0]
+            st.markdown(body = current_question_text)
+            current_answer = st.session_state.current_answers[current_question_id]
+            radio_button = st.radio(label=f"Frage {current_question_id}", options=OPTIONS_FORM, index=TRANSLATE_ANSWER_INDEX[current_answer], key=f"answer_{current_question_id}", horizontal=True, label_visibility="collapsed")
     st.write(f"Seite {st.session_state.page} von {amount_pages}")
     left, right = st.columns(2)
     if st.session_state.page < amount_pages:

@@ -8,7 +8,7 @@ from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gs
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 
 # -Seitenkonfiguration-
-st.set_page_config(page_title="Profilverwaltung")
+st.set_page_config(page_title="Profilverwaltung", layout="wide")
 check_mode()
 default_menu()
 

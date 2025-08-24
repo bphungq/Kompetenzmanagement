@@ -11,7 +11,7 @@ from functions.user_management import create_profile
 from functions.initialize import initialize_fragebogen
 
 # -Seitenkonfiguration-
-st.set_page_config(page_title="Fragebogen")
+st.set_page_config(page_title="Fragebogen", layout="wide")
 check_mode()
 no_menu()
 

@@ -3,7 +3,7 @@ from functions.menu import default_menu
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 
 # -Seitenkonfiguration-
-st.set_page_config(page_title="Fragebogen")
+st.set_page_config(page_title="Fragebogen", layout="wide")
 check_mode()
 default_menu()
 

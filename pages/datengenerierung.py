@@ -6,7 +6,7 @@ import pandas as pd
 import os
 from functions.menu import default_menu
 
-st.set_page_config(page_title="Datengenerierung")
+st.set_page_config(page_title="Datengenerierung", layout="wide")
 
 default_menu()
 

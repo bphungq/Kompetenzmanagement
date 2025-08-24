@@ -6,7 +6,7 @@ from functions.database import get_dataframe_from_gsheet
 from functions.session_state import check_mode
 
 # -Seitenkonfiguration-
-st.set_page_config(page_title="Kompetenzbeurteilung")
+st.set_page_config(page_title="Kompetenzbeurteilung", layout="wide")
 check_mode()
 default_menu()
 

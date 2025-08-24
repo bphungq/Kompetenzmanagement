@@ -6,7 +6,7 @@ from functions.session_state import check_mode
 from config import GOOGLE_SHEET_ANSWERS, COLUMN_INDEX
 
 # -Seitenkonfiguration-
-st.set_page_config(page_title="Export")
+st.set_page_config(page_title="Export", layout="wide")
 check_mode()
 default_menu()
 

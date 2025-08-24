@@ -4,7 +4,7 @@ from functions.menu import no_menu
 from functions.session_state import check_mode
 
 # -Seitenkonfiguration-
-st.set_page_config(page_title="Kompetenzen festlegen")
+st.set_page_config(page_title="Kompetenzen festlegen", layout="wide")
 check_mode()
 no_menu()
 
