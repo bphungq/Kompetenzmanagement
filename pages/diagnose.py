@@ -40,15 +40,18 @@ data_profiles = get_dataframe_from_gsheet(
 data_answers = get_dataframe_from_gsheet(
     GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP
 )
+data_answers.index = pd.to_datetime(data_answers.index, format='%d.%m.%Y %H:%M')
+
 data_bedarfe = get_dataframe_from_gsheet(
     GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP
 )
+data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
 
 col1, col2 = st.columns(2)
 
 with col1:
     # Profil auswählen
-    st.subheader("Profil Auswahl:")
+    st.subheader("Profil Auswahl")
     set_name_active_profile = st.selectbox(
         "Profil auswählen:", data_profiles[["Name"]], key="profil_auswahl_1"
     )
@@ -61,26 +64,11 @@ with col1:
         data_answers["Profil-ID"] == set_id_active_profile
     ]
 
-
     set_first_timestamp_active_profile, set_second_timestamp_active_profile = st.select_slider(
         label = "Zeitpunkte für den Vergleich auswählen:",
         options = filtered_update_time,
         value = [max(filtered_update_time), min(filtered_update_time)]
     )
-
-    """
-    set_first_timestamp_active_profile = st.selectbox(
-        "Ersten Zeitpunkt auswählen:", filtered_update_time, key="erster_zeitpunkt_1"
-    )
-
-    set_second_timestamp_active_profile = st.selectbox(
-        "Zweiten Zeitpunkt auswählen:",
-        filtered_update_time,
-        index=len(filtered_update_time) - 1 if len(filtered_update_time) > 0 else 0,
-        key="zweiter_zeitpunkt_1",
-        help="Der zweite Zeitpunkt muss später sein als der erste Zeitpunkt, weil hier eine Differenz berechnet wird."
-    )
-    """
 
     # Prüfen und Rolle ausgeben
     if set_id_active_profile in data_answers["Profil-ID"].values:
@@ -94,7 +82,7 @@ with col1:
 
 
 with col2:
-    st.subheader("Bedarf Auswahl:")
+    st.subheader("Rolle Auswahl")
 
     unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
 
@@ -119,7 +107,6 @@ with col2:
         "Bedarfs-Rolle auswählen:", unique_bedarf_roles, index=default_role_index, key="bedarf_auswahl_1"
     )
 
-    
     # Zeitpunkt auswählen
     filtered_timestamps_bedarf = data_bedarfe.index[
         data_bedarfe["Rollen-Name"] == set_bedarf_role
@@ -138,20 +125,6 @@ with col2:
             value = [min(filtered_timestamps_bedarf), max(filtered_timestamps_bedarf)]
         )
 
-    """
-    set_first_timestamp_bedarf = st.selectbox(
-        "Ersten Zeitpunkt auswählen:",
-        filtered_timestamps_bedarf,
-        key="erster_zeitpunkt_2",
-    )
-    set_second_timestamp_bedarf = st.selectbox(
-        "Zweiten Zeitpunkt auswählen:",
-        filtered_timestamps_bedarf,
-        index=len(filtered_timestamps_bedarf) - 1 if len(filtered_timestamps_bedarf) > 0 else 0,
-        key="zweiter_zeitpunkt_2",
-        help="Der zweite Zeitpunkt muss später sein als der erste Zeitpunkt, weil hier eine Differenz berechnet wird."
-    )
-    """
 
 # Erste Zeile mit zwei Diagrammen
 col1, col2 = st.columns(2)

@@ -131,6 +131,7 @@ def get_latest_update_time(profil_id):
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    answers["Speicherzeitpunkt"] = pd.to_datetime(answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
     filtered_answers = answers[answers["Profil-ID"] == profil_id]
     if len(filtered_answers) == 0:
         return None
@@ -171,6 +172,7 @@ def get_selected_cluster_values(
     """
     # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    answers["Speicherzeitpunkt"] = pd.to_datetime(answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
 
     # Filtere die Antworten nach Profil-ID und Zeitpunkt
     filtered_answers = answers[
@@ -226,6 +228,7 @@ def get_cluster_values_over_time(profil_id, cluster_name):
     # Alle Antworten für die Profil-ID laden
     # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    answers["Speicherzeitpunkt"] = pd.to_datetime(answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
     filtered_answers = answers[answers["Profil-ID"] == profil_id]
 
     if len(filtered_answers) == 0:
@@ -270,6 +273,7 @@ def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
     """
     # TODO: bedarfe_df als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     bedarfe_df = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+    bedarfe_df["Speicherzeitpunkt"] = pd.to_datetime(bedarfe_df["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
 
     # Filtere nach Rolle und Zeitpunkt
     filtered_bedarf = bedarfe_df[
@@ -320,6 +324,7 @@ def get_latest_update_time_bedarf(role):
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
     bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+    bedarfe["Speicherzeitpunkt"] = pd.to_datetime(bedarfe["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
     filtered_bedarfe = bedarfe[bedarfe["Rollen-Name"] == role]
     if len(filtered_bedarfe) == 0:
         return None

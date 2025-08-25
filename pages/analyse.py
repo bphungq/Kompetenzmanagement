@@ -38,18 +38,22 @@ st.title("Analyse")
 data_profiles = get_dataframe_from_gsheet(
     GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID
 )
+
 data_answers = get_dataframe_from_gsheet(
     GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP
 )
+data_answers.index = pd.to_datetime(data_answers.index, format='%d.%m.%Y %H:%M')
+
 data_bedarfe = get_dataframe_from_gsheet(
     GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP
 )
+data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
 
 col1, col2 = st.columns(2)
 
 with col1:
     # Profil auswählen
-    st.subheader("Profil Auswahl:")
+    st.subheader("Profil Auswahl")
     set_name_active_profile = st.selectbox(
         "Profil auswählen:", data_profiles[["Name"]], key="analyse_profil_auswahl_1"
     )
@@ -84,28 +88,14 @@ with col1:
     st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}")
 
 with col2:
-    st.subheader("Bedarf Auswahl:")
+    st.subheader("Rollen Auswahl")
 
     # Bedarf auswählen #format_func=lambda x: f"Profil {x}"
     unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
-    
-    # Rolle zum ausgewählten Zeitpunkt ermitteln
-    default_role_index = None
-    if len(filtered_update_time) > 0 and "Rollen-Name" in data_answers.columns:
-        try:
-            # Verwende den letzten Zeitpunkt als Standard
-            selected_timestamp = filtered_update_time[-1]
-            role_mask = (data_answers.index == selected_timestamp) & (data_answers["Profil-ID"] == set_id_active_profile)
-            role_rows = data_answers.loc[role_mask, "Rollen-Name"]
-            if len(role_rows) > 0:
-                profile_role = role_rows.iloc[0]
-                if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
-                    default_role_index = unique_bedarf_roles.index(profile_role)
-        except Exception:
-            default_role_index = None
-    
+
+    # Rolle auswählen
     set_bedarf_role = st.selectbox(
-        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, index=default_role_index
+        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, index=unique_bedarf_roles.index(role_for_selection)
     )
 
     # Zeitpunkt auswählen
@@ -113,7 +103,7 @@ with col2:
         data_bedarfe["Rollen-Name"] == set_bedarf_role
     ]
     set_timestamp_bedarf = st.selectbox(
-        "Zeitpunkt auswählen:", filtered_timestamps_bedarf, key="analyse_zeitpunkt_2"
+        "Zeitpunkt auswählen:", filtered_timestamps_bedarf, index=int(filtered_timestamps_bedarf.values.argmax())
     )
 
 # Überprüfen, ob Profil in den Antworten vorhanden ist
@@ -220,7 +210,7 @@ with st.container():
     # GAP-Analyse
     with cols[0]:
         with st.container(border=False):
-            st.header("GAP-Analyse")
+            st.subheader("GAP-Analyse")
 
             if not data_bedarfe.empty:
                 # Differenzen berechnen mit modularer Funktion
@@ -252,10 +242,11 @@ with st.container():
 
             else:
                 st.warning("Keine Daten für die Differenzberechnung verfügbar.")
+
     # -Meta-Daten-
     with cols[1]:
         with st.container(border=False):
-            st.header("Meta-Daten")
+            st.subheader("Meta-Daten")
             st.write(f"Profil-ID: {set_id_active_profile}")
             st.write(f"Name: {set_name_active_profile}")
             st.write(f"Anzahl Datensätze: {len(filtered_update_time)}")
