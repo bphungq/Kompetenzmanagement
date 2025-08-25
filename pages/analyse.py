@@ -253,8 +253,12 @@ with st.container():
 
             st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}" if role_for_selection is not None else "Rolle: -")
 
-            age_dataframe = data_answers.loc[set_update_time_active_profile, ["Profil-ID", "0SD06"]]
-            latest_age = age_dataframe.loc[age_dataframe["Profil-ID"] == set_id_active_profile, "0SD06"].values[0]
+            age_dataframe = data_answers.loc[data_answers.index == set_update_time_active_profile, ["Profil-ID", "0SD06"]]
+            latest_age_row = age_dataframe.loc[age_dataframe["Profil-ID"] == set_id_active_profile]
+            if not latest_age_row.empty:
+                latest_age = latest_age_row["0SD06"].values[0]
+            else:
+                latest_age = None  # Fallback für leere Ergebnisse
             if pd.isna(latest_age):
                 latest_age = None
             st.write(f"Alter zum gewählten Zeitpunkt: {int(latest_age)} Jahre" if latest_age is not None else "Alter: Nicht angegeben")
