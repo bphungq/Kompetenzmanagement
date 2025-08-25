@@ -18,7 +18,7 @@ data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUM
 data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
 answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
 
-# -Submenus-
+# -Unterseiten-
 def submenu_data():
     if st.button("Daten aktualisieren"):
         st.rerun(scope="app")
@@ -39,7 +39,6 @@ def submenu_add():
         set_role_active_profile = st.selectbox(label="Rolle", options=options_roles, index=None, placeholder="Rolle auswählen")
         if st.button("Profil anlegen"):
             create_profile(id=set_id_active_profile, name=set_name_active_profile, role=set_role_active_profile)
-            time.sleep(5)
             st.rerun(scope="app")
 
 def submenu_edit_profiles():
@@ -67,7 +66,6 @@ def submenu_edit_profiles():
             updated_answers = answers.copy()
             updated_answers.update(edited_df)
             update_dataframe_to_gsheet("antworten_test", updated_answers)
-            time.sleep(5)
             st.rerun(scope="app")
     else:
         st.warning("Keine Profile gefunden.")
@@ -105,7 +103,6 @@ def submenu_roles():
             updated_answers = answers.copy()
             updated_answers.update(edited_df)
             update_dataframe_to_gsheet("antworten_test", updated_answers)
-            time.sleep(5)
             st.rerun(scope="app")
     else:
         st.warning("Keine Antworten für dieses Profil gefunden.")
