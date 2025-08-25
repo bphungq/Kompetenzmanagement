@@ -58,7 +58,7 @@ COLUMN_INDEX = "index"
 
 
 # Spaltennamen für die Cluster-Werte
-CLUSTER_COLUMNS = ["cluster1", "cluster2","cluster3", "cluster4", "cluster5", "cluster6", "cluster7", "cluster8", "cluster9", "cluster10", "cluster11"]
+CLUSTER_COLUMNS = ["cluster1", "cluster2", "cluster3", "cluster4", "cluster5", "cluster6", "cluster7", "cluster8", "cluster9", "cluster10", "cluster11"]
 
 # Jahre, die in der Prognose berücksichtigt werden sollen
 YEARS_TO_PREDICT = [2026, 2027, 2028, 2029, 2030]

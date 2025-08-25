@@ -159,10 +159,6 @@ predictions_np_answers = model_answers.predict(future_years)
 predictions_np_bedarfe = model_bedarfe.predict(future_years)
 predictions_answers = pd.DataFrame(predictions_np_answers, columns=CLUSTER_COLUMNS)
 predictions_bedarfe = pd.DataFrame(predictions_np_bedarfe, columns=CLUSTER_COLUMNS)
-predictions_answers = predictions_answers.mask(predictions_answers < 1, other=1)
-predictions_bedarfe = predictions_bedarfe.mask(predictions_bedarfe < 1, other=1)
-predictions_answers = predictions_answers.mask(predictions_answers > 5, other=5)
-predictions_bedarfe = predictions_bedarfe.mask(predictions_bedarfe > 5, other=5)
 predictions_answers['Jahr'] = future_years.flatten()
 predictions_bedarfe['Jahr'] = future_years.flatten()
 predictions_answers['Profil-ID'] = set_id_active_profile
@@ -174,6 +170,79 @@ cluster_values_bedarfe_for_role_with_predictions = pd.concat([cluster_values_bed
 with st.container():
     left, right = st.columns(2)
 
+    # -Kompetenzverbesserungsmaßnahmen-
+    with right:
+        with st.container(border=False):
+            st.subheader("Kompetenzverbesserungsmaßnahmen")
+
+            # Dataframe Maßnahmen vorbereiten
+            training_programs_with_years = pd.DataFrame(columns=['Jahr', 'Maßnahme'])
+
+            # Multiselect-Box für Maßnahmen
+            training_programs = ["Führungskräfte Coaching", "Forschungslehrgang", "Job Rotation", "Teambuilding", "Zeitmanagement Workshop", "Design Thinking Workshop"]
+            set_active_training_programs = st.multiselect("Wähle Maßnahmen aus:", training_programs)
+
+            # Nur anzeigen, wenn Maßnahmen ausgewählt wurden 
+            if set_active_training_programs:
+                with st.form("Maßnahmen", border=True):
+                    # Multiselect-Box für Jahre
+                    for training_program in set_active_training_programs:
+                        training_years = st.multiselect(f"Jahre für {training_program} auswählen:", YEARS_TO_PREDICT)
+                        # Angaben in Dataframe speichern
+                        for training_year in training_years:
+                            new_row = pd.DataFrame({'Jahr': [training_year], 'Maßnahme': [training_program]})
+                            training_programs_with_years = pd.concat([training_programs_with_years, new_row], ignore_index=True)
+
+                    # -Datenauswertung-
+                    # Maßnahmen in zukünftige Jahre fortschreiben
+                    for index_a, row in training_programs_with_years.iterrows():
+                        training_year = row.loc["Jahr"]
+                        training_program = row.loc["Maßnahme"]
+                        if training_year < 2030:
+                            years_to_add = list(range(training_year + 1, 2031))
+                            for year in years_to_add:
+                                new_row = pd.DataFrame({'Jahr': [year], 'Maßnahme': [training_program]})
+                                training_programs_with_years = pd.concat([training_programs_with_years, new_row], ignore_index=True)
+
+                    # Nur fortfahren, wenn Daten vorhanden sind
+                    if len(training_programs_with_years) > 0:
+
+                        # Werte für Maßnahmen
+                        training_values = {
+                            "Führungskräfte Coaching": [0.0, 0.3, 0.0, 0.0, 0.3, 0.7, 0.0, 0.0, 0.3, 0.0, 0.0],
+                            "Forschungslehrgang": [0.3, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3],
+                            "Job Rotation": [0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.3, 0.3, 0.7, 0.0],
+                            "Teambuilding": [0.0, 0.7, 0.0, 0.7, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0],
+                            "Zeitmanagement Workshop": [0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.7, 0.0, 0.7, 0.3, 0.0],
+                            "Design Thinking Workshop": [0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.7]
+                        }
+
+                        # Spalte Anzahl mit Wert 1 hinzufügen
+                        training_programs_with_years["Anzahl"] = 1
+
+                        # Gruppieren nach Jahr und Maßnahme, dann Anzahl addieren
+                        training_programs_with_years = training_programs_with_years.groupby(['Jahr', 'Maßnahme'], as_index=False)['Anzahl'].sum().sort_values(by=['Maßnahme', 'Jahr'])
+
+                        # Cluster-Werte Berechnen
+                        for index_c, row in training_programs_with_years.iterrows():
+                            for index_b, cluster_column in enumerate(CLUSTER_COLUMNS):
+                            # Hole die entsprechenden Werte für jede Maßnahme und multipliziere sie mit der Anzahl
+                                training_programs_with_years.loc[index_c, cluster_column] = training_values[row["Maßnahme"]][index_b] * row["Anzahl"]
+
+                    # Form akzeptieren
+                    st.form_submit_button("Maßnahmen aktualisieren")
+
+            # Toggle zum verwenden der Maßnahmen
+            if len(training_programs_with_years) > 0:
+                toggle_training = st.toggle("Maßnahmen aktivieren", value=True)
+
+                # Maßnahmen einberechnen
+                if toggle_training:
+                    for index, row in training_programs_with_years.iterrows():
+                        year = row["Jahr"]
+                        cluster_values_answers_for_profile_with_predictions.loc[cluster_values_answers_for_profile_with_predictions["Jahr"] == year, CLUSTER_COLUMNS] += row[CLUSTER_COLUMNS]
+
+
     # -Netzdiagramm Prognose-
     with left:
         with st.container(border=False):
@@ -181,6 +250,12 @@ with st.container():
 
             # Jahr zum Anzeigen der Werte auswählen
             set_year = st.segmented_control(label="Jahr auswählen", options=["Aktuell"] + YEARS_TO_PREDICT, default="Aktuell", label_visibility="collapsed")
+
+            # Min und Max Werte an Skala anpassen
+            cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] = cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] < 1, other=1)
+            cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] = cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] < 1, other=1)
+            cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] = cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] > 5, other=5)
+            cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] = cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] > 5, other=5)
 
             # Cluster-Werte für das ausgewählte Jahr filtern und in Liste umwandeln
             cluster_values_answers_for_figure = cluster_values_answers_for_profile_with_predictions.loc[
@@ -226,35 +301,6 @@ with st.container():
             )
 
             st.plotly_chart(fig)
-
-            st.write(cluster_values_answers_for_profile_with_predictions)
-
-
-    # -Kompetenzverbesserungsmaßnahmen-
-    with right:
-        with st.container(border=False):
-            st.subheader("Kompetenzverbesserungsmaßnahmen")
-
-            training_programs = ["Führungskräfte Coaching", "Forschungslehrgang", "Job Rotation", "Teambuilding", "Zeitmanagement Workshop", "Design Thinking Workshop"]
-            set_active_training_programs = st.multiselect("Wähle Maßnahmen aus:", training_programs)
-
-            fuehrungs_coaching_values= np.array([0.0, 0.3, 0.0, 0.0, 0.3, 0.7, 0.0, 0.0, 0.3, 0.0, 0.0])
-            forschungslehrgang_values = np.array([0.3, 0.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3])
-            job_rotation_values = np.array([0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0, 0.3, 0.3, 0.7, 0.0])
-            teambuilding_values = np.array([0.0, 0.7, 0.0, 0.7, 0.0, 0.0, 0.0, 0.3, 0.0, 0.0, 0.0])
-            zeitmanagement_values = np.array([0.0, 0.0, 0.0, 0.0, 0.3, 0.0, 0.7, 0.0, 0.7, 0.3, 0.0])
-            design_thinking_values = np.array([0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.3, 0.7])
-            selected_years = {}
-
-
-            for training_programs in set_active_training_programs:
-                # Erstelle ein Dropdown-Menü für das Jahr dieser Option
-                training_programs_years = st.multiselect(f"Wähle die Jahre für {training_programs}:", YEARS_TO_PREDICT)
-
-                selected_years[training_programs] = training_programs_years
-
-
-
 
 
 with st.container():
