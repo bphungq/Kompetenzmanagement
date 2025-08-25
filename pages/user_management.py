@@ -3,7 +3,7 @@ import pandas as pd
 import time
 from functions.menu import default_menu
 from functions.user_management import create_profile
-from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX
+from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWERS, GOOGLE_SHEET_BEDARFE, COLUMN_INDEX
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 
@@ -12,69 +12,104 @@ st.set_page_config(page_title="Profilverwaltung", layout="wide")
 check_mode()
 default_menu()
 
+
+# -Daten einlesen-
+data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
+data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+
 # -Submenus-
 def submenu_data():
-    st.write("Vorhandene Profile:")
-    st.write(data_profiles)
+    if st.button("Daten aktualisieren"):
+        st.rerun(scope="app")
+    st.subheader("Vorhandene Profile")
+    st.write(data_profiles.sort_index())
 
-    st.write("Ausgefüllte Fragebögen:")
+    st.subheader("Ausgefüllte Fragebögen")
     st.write(answers)
 
 def submenu_add():
     set_id_active_profile = st.number_input(label="Profil-ID (zwischen 101 und 999):", min_value=101, max_value=999, value=None)
-    if set_id_active_profile is not None and set_id_active_profile in data_profiles.index:
-        name = data_profiles.loc[set_id_active_profile, "Name"]
-        st.warning(f"ID bereits vergeben. Profil mit der ID {set_id_active_profile}: {name}.")
-        id_taken = True
-    else:
-        id_taken = False
-    set_name_active_profile = st.text_input(label="Profil Name")
-    confirm_new_profile = st.button(label="Profil anlegen", disabled=id_taken)
-    if confirm_new_profile and set_id_active_profile not in data_profiles.index:
-        create_profile(id=set_id_active_profile, name=set_name_active_profile)
-        st.rerun(scope="app")
+    st.button(label="ID prüfen")
+    if set_id_active_profile in data_profiles.index:
+        st.warning(f"Ein Profil mit der ID {set_id_active_profile} ist bereits vorhanden.")
+    elif set_id_active_profile:
+        set_name_active_profile = st.text_input(label="Profil Name")
+        options_roles = data_bedarfe["Rollen-Name"].unique()
+        set_role_active_profile = st.selectbox(label="Rolle", options=options_roles, index=None, placeholder="Rolle auswählen")
+        if st.button("Profil anlegen"):
+            create_profile(id=set_id_active_profile, name=set_name_active_profile, role=set_role_active_profile)
+            time.sleep(5)
+            st.rerun(scope="app")
 
-def submenu_edit():
-    st.write("Keine Funktionalität implementiert.")
+def submenu_edit_profiles():
+    if len(data_profiles) > 0:
+        st.subheader("Profile")
+        edited_df = st.data_editor(
+            data = data_profiles,
+            hide_index= False,
+            column_order= ["Profil-ID", "Name", "Rollen-Name"],
+            disabled= ["Profil-ID"],
+            column_config = {
+                "Name": st.column_config.TextColumn(
+                    label="Name",
+                    help="Hier können Sie den Namen für das Profil festlegen.",
+                    max_chars=50
+                ),
+                "Rollen-Name": st.column_config.TextColumn(
+                    label="Aktuelle Rolle",
+                    help="Hier können Sie die aktuelle Rolle für das Profil festlegen.",
+                    max_chars=50
+                )
+            }
+        )
+        if st.button(label="Änderungen speichern"):
+            updated_answers = answers.copy()
+            updated_answers.update(edited_df)
+            update_dataframe_to_gsheet("antworten_test", updated_answers)
+            time.sleep(5)
+            st.rerun(scope="app")
+    else:
+        st.warning("Keine Profile gefunden.")
+
 
 def submenu_roles():
-    set_id_active_profile = st.number_input(label="Profil-ID", min_value=101, max_value=999)
-    st.button(label="ID prüfen")
-    st.write("")
-    if set_id_active_profile is not None and set_id_active_profile in data_profiles.index:
-        filtered_answers = answers_test[answers_test["Profil-ID"] == set_id_active_profile]
-        if len(filtered_answers) > 0:
-            st.write("Anworten für das Profil:")
-            edited_df = st.data_editor(
-                data = filtered_answers,
-                hide_index= True,
-                column_order= ("Profil-ID", "Speicherzeitpunkt", "Rollen-Name"),
-                disabled = ("Profil-ID", "Speicherzeitpunkt"),
-                column_config = {
-                    "Rollen-Name": st.column_config.TextColumn(
-                        label="Rollen-Name",
-                        help="Hier können Sie die Rolle für das Profil festlegen.",
-                        max_chars=50
-                    )
-                }
-            )
-            if st.button(label="Rollen speichern"):
-                updated_answers = answers_test.copy()
-                updated_answers.update(edited_df)
-                update_dataframe_to_gsheet("antworten_test", updated_answers)
-                time.sleep(5)
-                st.rerun(scope="app")
-        else:
-            st.write("Keine Antworten für dieses Profil gefunden.")
+    set_id_active_profile = None
+    toggle_filter = st.toggle("Nach Profil filtern")
+    if toggle_filter:
+        options_profiles = data_profiles["Name"].unique().tolist()
+        set_name_active_profile = st.selectbox(label="Profil auswählen:", options=options_profiles)
+        if set_name_active_profile:
+            set_id_active_profile = data_profiles.loc[data_profiles["Name"] == set_name_active_profile].index[0]
+            st.write(f"Profil-ID: {int(set_id_active_profile)}")
+    if toggle_filter:
+        filtered_answers = answers[answers["Profil-ID"] == set_id_active_profile]
     else:
-        st.write(f"Kein Profil mit der ID {set_id_active_profile} vorhanden.")
+        filtered_answers = answers.copy()
+    if len(filtered_answers) > 0:
+        st.subheader("Datenpunkte")
+        edited_df = st.data_editor(
+            data = filtered_answers,
+            hide_index= True,
+            column_order= ["Profil-ID", "Speicherzeitpunkt", "Rollen-Name"],
+            disabled = ["Profil-ID", "Speicherzeitpunkt"],
+            column_config = {
+                "Rollen-Name": st.column_config.TextColumn(
+                    label="Rollen-Name",
+                    help="Hier können Sie die Rolle für das Profil festlegen.",
+                    max_chars=50
+                )
+            }
+        )
+        if st.button(label="Änderungen speichern"):
+            updated_answers = answers.copy()
+            updated_answers.update(edited_df)
+            update_dataframe_to_gsheet("antworten_test", updated_answers)
+            time.sleep(5)
+            st.rerun(scope="app")
+    else:
+        st.warning("Keine Antworten für dieses Profil gefunden.")
 
-# -Tabelle für Profile verknüpfen-
-data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
-
-# -Tabelle für Antworten verknüpfen-
-answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-answers_test = get_dataframe_from_gsheet("antworten_test", index_col=COLUMN_INDEX)
 
 # -Seiteninhalt-
 st.title("Profilverwaltung")
@@ -84,7 +119,7 @@ submenu_options = ["Daten", "Profil hinzufügen", "Profil bearbeiten", "Rollen z
 submenu_functions = {
     "Daten": submenu_data,
     "Profil hinzufügen": submenu_add,
-    "Profil bearbeiten": submenu_edit,
+    "Profil bearbeiten": submenu_edit_profiles,
     "Rollen zuweisen": submenu_roles
 }
 
