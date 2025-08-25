@@ -18,6 +18,8 @@ from functions.data import (
     calculate_time_differences_bedarfe,
     get_cluster_values_for_correlation_matrix,
     calculate_development_gap,
+    get_selected_cluster_values,
+    get_cluster_names
 )
 from functions.session_state import check_mode
 
@@ -180,10 +182,16 @@ with col3:
             differences_df, differences_bedarf_df
         )
 
+        # Aktuelle Werte zum Dataframe hinzufügen
+        current_values = get_selected_cluster_values(set_id_active_profile, set_second_timestamp_active_profile)
+        cluster_names = get_cluster_names()
+        current_values_df = pd.DataFrame({"Cluster": cluster_names, "Ist-Werte": current_values})
+        combined_df = pd.merge(development_gap_df, current_values_df, on="Cluster", how="inner")
+
         if not development_gap_df.empty:
             title = "Gap-Diagnose: Profil vs. Bedarf Entwicklung"
             fig_gap = create_gap_analysis_chart(
-                development_gap_df,
+                combined_df,
                 title,
                 "Differenz (Profil-Entwicklung - Bedarf-Entwicklung)",
                 title_font_size=16 + TITLE_FONT_SIZE_INCREASE,

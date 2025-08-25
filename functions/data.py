@@ -546,6 +546,21 @@ def create_gap_analysis_chart(
         )
     )
 
+    # Zweiten Balken hinzufügen
+    if differences_df.shape[1] > 2:
+        fig.add_trace(
+            go.Bar(
+                y=differences_df["Cluster"],
+                x=differences_df["Ist-Werte"],
+                orientation="h",
+                marker_color="grey",
+                text=[f"{x:.1f}" for x in differences_df["Differenz"]],
+                textposition="auto",
+                textangle=0,
+                name="Differenz",
+            )
+        )
+
     # Layout anpassen
     layout_dict = {
         "title": title,
@@ -604,6 +619,7 @@ def get_gap_analysis_legend(analysis_type="analyse"):
         **Legende:**
         - 🔴 **Rot**: Negative Abweichung (Profil-Entwicklung < Bedarf-Entwicklung)
         - 🟢 **Grün**: Positive Abweichung (Profil-Entwicklung > Bedarf-Entwicklung)
+        - ⚫ **Grau**: Aktuelle Werte (zum zweiten Zeitpunkt)
         """
     else:
         return ""
