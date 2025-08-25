@@ -514,7 +514,7 @@ def create_gap_analysis_chart(
         title_font_size (int, optional): Schriftgröße für den Titel
         bar_color (str, optional): Einzelfarbe für alle Balken (z. B. 'blue')
         negative_color (str, optional): Farbe für negative Abweichungen (Standard 'red')
-        positive_color (str, optional): Farbe für positive Abweichungen (Standard 'green')
+        positive_color (str, optional): Farbe für positive Abweichungen (Standard 'blue')
 
     Returns:
         plotly.graph_objects.Figure: Das erstellte Diagramm
@@ -529,7 +529,7 @@ def create_gap_analysis_chart(
         marker_color = bar_color
     else:
         neg_col = negative_color if negative_color is not None else "red"
-        pos_col = positive_color if positive_color is not None else "green"
+        pos_col = positive_color if positive_color is not None else "blue"
         marker_color = [
             neg_col if x < 0 else pos_col for x in differences_df["Differenz"]
         ]
@@ -617,14 +617,14 @@ def get_gap_analysis_legend(analysis_type="analyse"):
         return """
         **Legende:**
         - 🔴 **Rot**: Verschlechterung (Später < Früher)
-        - 🟢 **Grün**: Verbesserung (Später > Früher)
+        - 🔵 **Blau**: Verbesserung (Später > Früher)
         """
     elif analysis_type == "entwicklung_gap":
         return """
         **Legende:**
         - 🔴 **Rot**: Negative Abweichung (Profil-Entwicklung < Bedarf-Entwicklung)
-        - 🟢 **Grün**: Positive Abweichung (Profil-Entwicklung > Bedarf-Entwicklung)
-        - ⚫ **Grau**: Aktuelle Werte (zum zweiten Zeitpunkt)
+        - 🔵 **Blau**: Positive Abweichung (Profil-Entwicklung > Bedarf-Entwicklung)
+        - ⚫ **Grau**: Aktuelle Abweichung (zum zweiten Zeitpunkt)
         """
     else:
         return ""

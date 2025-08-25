@@ -49,6 +49,7 @@ data_bedarfe = get_dataframe_from_gsheet(
 )
 data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
 
+
 col1, col2 = st.columns(2)
 
 with col1:

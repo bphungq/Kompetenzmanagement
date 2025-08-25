@@ -19,7 +19,8 @@ from functions.data import (
     get_cluster_values_for_correlation_matrix,
     calculate_development_gap,
     get_selected_cluster_values,
-    get_cluster_names
+    get_cluster_names,
+    calculate_cluster_differences
 )
 from functions.session_state import check_mode
 
@@ -46,6 +47,9 @@ data_bedarfe = get_dataframe_from_gsheet(
     GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP
 )
 data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
+
+data_answers_real = pd.read_csv("data/antworten_real.csv", sep=',', encoding='utf-8')
+
 
 col1, col2 = st.columns(2)
 
@@ -193,11 +197,19 @@ with col3:
             differences_df, differences_bedarf_df
         )
 
-        # Aktuelle Werte zum Dataframe hinzufügen
-        current_values = get_selected_cluster_values(set_id_active_profile, set_second_timestamp_active_profile)
-        cluster_names = get_cluster_names()
-        current_values_df = pd.DataFrame({"Cluster": cluster_names, "Ist-Werte": current_values})
-        combined_df = pd.merge(development_gap_df, current_values_df, on="Cluster", how="inner")
+        # Aktuelle Gap-Werte zum Dataframe hinzufügen
+        if not data_bedarfe.empty:
+            # Differenzen berechnen mit modularer Funktion
+            current_gap_df = calculate_cluster_differences(
+                set_id_active_profile,
+                set_bedarf_role,
+                set_second_timestamp_active_profile,
+                set_second_timestamp_bedarf,
+            )
+        else:
+            current_gap_df = pd.DataFrame()
+        current_gap_df.rename(columns={"Differenz": "Ist-Werte"}, inplace=True)
+        combined_df = pd.merge(development_gap_df, current_gap_df, on="Cluster", how="inner")
 
         if not development_gap_df.empty:
             title = "Gap-Diagnose: Profil vs. Bedarf Entwicklung"
@@ -220,7 +232,7 @@ with col3:
 
 with col4:
 
-    corr_data = get_cluster_values_for_correlation_matrix(data_answers)
+    corr_data = get_cluster_values_for_correlation_matrix(data_answers_real)
     corr = corr_data.corr()
     fig3 = px.imshow(
         corr,
