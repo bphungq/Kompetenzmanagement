@@ -73,8 +73,12 @@ with col1:
             "Zeitpunkt auswählen:", ["Keine Daten verfügbar"], key="analyse_zeitpunkt_1"
         )
 
-    # Rolle ausgeben
-    role_for_selection = data_answers.loc[(data_answers.index == set_update_time_active_profile) & (data_answers["Profil-ID"] == set_id_active_profile), "Rollen-Name"].values[0]
+    # Prüfen und Rolle ausgeben
+    if set_id_active_profile in data_answers["Profil-ID"].values:
+        role_for_selection = data_answers.loc[(data_answers.index == set_update_time_active_profile) & (data_answers["Profil-ID"] == set_id_active_profile), "Rollen-Name"].values[0]
+    else:
+        st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
+        st.stop()
     if pd.isna(role_for_selection):
         role_for_selection = "Keine Rolle zugewiesen"
     st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}")
@@ -86,7 +90,7 @@ with col2:
     unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
     
     # Rolle zum ausgewählten Zeitpunkt ermitteln
-    default_role_index = 0
+    default_role_index = None
     if len(filtered_update_time) > 0 and "Rollen-Name" in data_answers.columns:
         try:
             # Verwende den letzten Zeitpunkt als Standard
@@ -98,10 +102,10 @@ with col2:
                 if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
                     default_role_index = unique_bedarf_roles.index(profile_role)
         except Exception:
-            default_role_index = 0
+            default_role_index = None
     
     set_bedarf_role = st.selectbox(
-        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, index=default_role_index, key="bedarf_auswahl_1"
+        "Bedarfs-Rolle auswählen:", unique_bedarf_roles, index=default_role_index
     )
 
     # Zeitpunkt auswählen
