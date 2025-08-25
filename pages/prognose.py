@@ -195,7 +195,7 @@ with st.container():
 
             # Multiselect-Box für Maßnahmen
             training_programs = ["Führungskräfte Coaching", "Forschungslehrgang", "Job Rotation", "Teambuilding", "Zeitmanagement Workshop", "Design Thinking Workshop"]
-            set_active_training_programs = st.multiselect("Wähle Maßnahmen aus:", training_programs)
+            set_active_training_programs = st.multiselect("Wähle Maßnahmen aus:", training_programs, placeholder="Maßnahmen")
 
             # Nur anzeigen, wenn Maßnahmen ausgewählt wurden 
             if set_active_training_programs:
@@ -265,8 +265,8 @@ with st.container():
             # Selectbox für Ähnlichkeitsmaß
             similarity_measure = st.selectbox(label="Ähnlichkeitsmaß auswählen:", options=["Euklidische Distanz", "Manhattan-Distanz"], index=0)
 
-            # Checkbox, ob nur unterschiedliche Rollen berücksichtigt werden sollen
-            different_roles = st.checkbox(label=f"Nur andere Rollen als die aktuelle Rolle ({current_role}) berücksichtigen", value=False)
+            # Multiselect mit Rollen, die ausgeschlossen werden sollen            
+            roles_to_filter = st.multiselect("Rollen ausschließen:", unique_roles, placeholder="Rollen")
 
             # Tabelle für Ähnlichkeitsmaß vorbereiten
             cluster_values_answers_similarity = cluster_values_answers_full.copy()
@@ -299,13 +299,14 @@ with st.container():
             indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df["Profil-ID"] == set_id_active_profile].index
             distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
 
+            # Profile mit angegebenen Rollen entfernen
+            if roles_to_filter:
+                for role in roles_to_filter:
+                    indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df["Rollen-Name"] == role].index
+                    distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
+
             # Nach Ähnlichkeit sortieren und jede Profil-ID nur einmal listen
             distances_to_set_profile_df = distances_to_set_profile_df.sort_values("Abstände").drop_duplicates("Profil-ID")
-
-            # Profile mit gleicher Rolle entfernen, wenn die Checkbox aktiviert ist
-            if different_roles:
-                indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df["Rollen-Name"] == current_role].index
-                distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
 
             # DataFrame nach Abständen sortieren und die 3 ähnlichsten Profile auswählen
             most_similar_profiles = distances_to_set_profile_df.nsmallest(3, "Abstände")
@@ -313,15 +314,35 @@ with st.container():
             # Ausgabe der ähnlichsten Profile
             st.write("")
             st.write("Die 3 ähnlichsten Profile sind:")
-            for index, row in most_similar_profiles.iterrows():
-                profile_id = int(row["Profil-ID"])
-                profile_name = data_profiles.loc[profile_id, "Name"] if profile_id in data_profiles.index else "Unbekannt"
-                role_name = row["Rollen-Name"] if pd.notna(row["Rollen-Name"]) else "Keine Rolle zugewiesen"
-                distance = row["Abstände"]
-                similarity = 100 - (row["Abstände"] / 13.27 * 100) if similarity_measure == "Euklidische Distanz" else 100 - (row["Abstände"] / 44 * 100)
-                # Maximale euklidische Distanz: Wurzel(11 * (5-1)²) = 13.27
-                # Maximale Manhattan-Distanz: 11 * (5-1) = 44
-                st.write(f"Profil-ID: {profile_id}, Name: {profile_name}, Rolle: {role_name}, Abstand: {distance:.2f}, Ähnlichkeit: {similarity:.2f}%")
+            for loop_index, (row_index, row) in enumerate(most_similar_profiles.iterrows()):
+                with st.container(border=True):
+                    profile_id = int(row["Profil-ID"])
+                    timestamp = pd.Timestamp(row["Speicherzeitpunkt"]).strftime("%d.%m.%Y")
+                    profile_name = data_profiles.loc[profile_id, "Name"] if profile_id in data_profiles.index else "Unbekannt"
+                    role_name = row["Rollen-Name"] if pd.notna(row["Rollen-Name"]) else "Keine Rolle zugewiesen"
+                    distance = row["Abstände"]
+                    similarity = 100 - (row["Abstände"] / 13.27 * 100) if similarity_measure == "Euklidische Distanz" else 100 - (row["Abstände"] / 44 * 100)
+                    # Maximale euklidische Distanz: Wurzel(11 * (5-1)²) = 13.27
+                    # Maximale Manhattan-Distanz: 11 * (5-1) = 44
+                    st.write(f"{loop_index + 1}. {profile_name} am {timestamp}")
+                    st.write(f"Rolle: {role_name} | Abstand: {distance:.2f} | Ähnlichkeit: {similarity:.2f}%")
+                    # Rollenverlauf Tabelle
+                    with st.expander("Rollenverlauf"):
+                        if "Rollen-Name" in data_answers.columns:
+                            # Daten für das ausgewählte Profil filtern
+                            profile_data = data_answers[data_answers["Profil-ID"] == profile_id]
+                            if not profile_data.empty:
+                                # Spalten Speicherzeitpunkt und Rolle auswählen
+                                role_history = profile_data[["Rollen-Name", "Speicherzeitpunkt"]].copy()
+                                role_history["Speicherzeitpunkt"] = role_history["Speicherzeitpunkt"].dt.strftime("%d.%m.%Y")
+                                role_history.set_index("Speicherzeitpunkt", inplace=True)
+
+                                # Tabelle anzeigen
+                                st.dataframe(role_history, use_container_width=True)
+                            else:
+                                st.write("Keine Rollendaten für dieses Profil verfügbar.")
+                        else:
+                            st.write("Keine Rollenspalte in den Daten vorhanden.")
 
 
     # -Rollentrendabschätzung-
@@ -341,7 +362,7 @@ with st.container():
                     st.session_state[f"slider_{index}"] = metaanalyse_values[index]
 
             with st.form("Trends", border=True):
-                with st.container(border=None, height=400):
+                with st.container(border=None, height=588):
                     # Slider ausgeben
                     for index, cluster_name in enumerate(unique_cluster_names):
                         if f"slider_{index}" not in st.session_state:
