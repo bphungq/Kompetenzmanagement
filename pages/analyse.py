@@ -118,7 +118,7 @@ with st.container():
     # -Netzdiagramm Kompetenzen-
     with cols[0]:
         with st.container(border=False):
-            st.header("Netzdiagramm Kompetenzen & Bedarfe")
+            st.subheader("Netzdiagramm Kompetenzen & Bedarfe")
             # Cluster-Werte für aktives Profil und Bedarf abrufen
             cluster_values_profil = get_selected_cluster_values(
                 set_id_active_profile, set_update_time_active_profile
@@ -169,7 +169,7 @@ with st.container():
     # -Profilentwicklung Diagramm-
     with cols[1]:
         with st.container(border=False):
-            st.header("Profilentwicklung")
+            st.subheader("Profilentwicklung")
             set_category = st.selectbox(
                 "Kategorie:", kategorien, key="analyse_kategorien_1"
             )
@@ -210,7 +210,7 @@ with st.container():
     # GAP-Analyse
     with cols[0]:
         with st.container(border=False):
-            st.subheader("GAP-Analyse")
+            st.subheader("Gap-Analyse")
 
             if not data_bedarfe.empty:
                 # Differenzen berechnen mit modularer Funktion
@@ -250,8 +250,6 @@ with st.container():
             st.write(f"Profil-ID: {set_id_active_profile}")
             st.write(f"Name: {set_name_active_profile}")
             st.write(f"Anzahl Datensätze: {len(filtered_update_time)}")
-            st.write("Zeitpunkte der vorhandenen Daten:")
-            st.markdown("\n".join([f"- {ts}" for ts in filtered_update_time]))
             role_value = None
             if "Rollen-Name" in data_answers.columns:
                 try:
@@ -280,8 +278,9 @@ with st.container():
                 except (ValueError, TypeError):
                     display_age = None
             st.write(f"Alter: {display_age}" if display_age is not None else "Alter: -")
+            last_update_time_formatted = pd.Timestamp(get_latest_update_time(set_id_active_profile)).strftime("%d.%m.%Y")
             st.write(
-                f"Letzte Aktualisierung: {get_latest_update_time(set_id_active_profile)}"
+                f"Letzte Aktualisierung: {last_update_time_formatted}"
             )
             
             # Rollenverlauf Tabelle
@@ -294,10 +293,11 @@ with st.container():
                         # Spalten Speicherzeitpunkt und Rolle auswählen
                         role_history = profile_data[["Rollen-Name"]].copy()
                         role_history.index.name = "Speicherzeitpunkt"
-                        role_history = role_history.reset_index()
-                        
+                        role_history_df = pd.DataFrame(role_history, index=pd.to_datetime(role_history.index))
+                        role_history_df.index = role_history_df.index.strftime("%d.%m.%Y")
+
                         # Tabelle anzeigen
-                        st.dataframe(role_history, use_container_width=True)
+                        st.dataframe(role_history_df, use_container_width=True)
                     else:
                         st.write("Keine Rollendaten für dieses Profil verfügbar.")
                 else:

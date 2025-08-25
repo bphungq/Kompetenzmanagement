@@ -125,6 +125,7 @@ with col2:
             value = [min(filtered_timestamps_bedarf), max(filtered_timestamps_bedarf)]
         )
 
+st.markdown("")
 
 # Erste Zeile mit zwei Diagrammen
 col1, col2 = st.columns(2)
@@ -140,7 +141,7 @@ with col1:
 
     if not differences_df.empty:
         # Diagramm Profil Entwicklung
-        title = f"Profil Entwicklung: {set_second_timestamp_active_profile} - {set_first_timestamp_active_profile}"
+        title = "Profil Entwicklung"
         fig = create_gap_analysis_chart(
             differences_df,
             title,
@@ -166,7 +167,7 @@ with col2:
     )
 
     if not differences_bedarf_df.empty:
-        title = f"Bedarf-Entwicklung: {set_second_timestamp_bedarf} - {set_first_timestamp_bedarf}"
+        title = "Rolle Entwicklung"
         fig_bedarf = create_gap_analysis_chart(
             differences_bedarf_df,
             title,
@@ -178,6 +179,8 @@ with col2:
             st.markdown(get_gap_analysis_legend("zeitvergleich"))
     else:
         st.warning("Keine Werte für die ausgewählten Bedarfs-Zeitpunkte verfügbar.")
+
+st.markdown("")
 
 # Zweite Zeile mit zwei Diagrammen
 col3, col4 = st.columns(2)
@@ -216,6 +219,7 @@ with col3:
         )
 
 with col4:
+
     corr_data = get_cluster_values_for_correlation_matrix(data_answers)
     corr = corr_data.corr()
     fig3 = px.imshow(
