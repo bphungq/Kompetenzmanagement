@@ -60,6 +60,15 @@ with col1:
     filtered_update_time = data_answers.index[
         data_answers["Profil-ID"] == set_id_active_profile
     ]
+
+
+    set_first_timestamp_active_profile, set_second_timestamp_active_profile = st.select_slider(
+        label = "Zeitpunkte für den Vergleich auswählen:",
+        options = filtered_update_time,
+        value = [max(filtered_update_time), min(filtered_update_time)]
+    )
+
+    """
     set_first_timestamp_active_profile = st.selectbox(
         "Ersten Zeitpunkt auswählen:", filtered_update_time, key="erster_zeitpunkt_1"
     )
@@ -71,6 +80,17 @@ with col1:
         key="zweiter_zeitpunkt_1",
         help="Der zweite Zeitpunkt muss später sein als der erste Zeitpunkt, weil hier eine Differenz berechnet wird."
     )
+    """
+
+    # Prüfen und Rolle ausgeben
+    if set_id_active_profile in data_answers["Profil-ID"].values:
+        role_for_selection = data_answers.loc[(data_answers.index == set_second_timestamp_active_profile) & (data_answers["Profil-ID"] == set_id_active_profile), "Rollen-Name"].values[0]
+    else:
+        st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
+        st.stop()
+    if pd.isna(role_for_selection):
+        role_for_selection = "Keine Rolle zugewiesen"
+    st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}")
 
 
 with col2:
@@ -79,7 +99,7 @@ with col2:
     unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
 
     # Rolle zum ausgewählten Zeitpunkt ermitteln
-    default_role_index = 0
+    default_role_index = None
     if len(filtered_update_time) > 0 and "Rollen-Name" in data_answers.columns:
         try:
             # Verwende den letzten Zeitpunkt als Standard
@@ -91,7 +111,7 @@ with col2:
                 if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
                     default_role_index = unique_bedarf_roles.index(profile_role)
         except Exception:
-            default_role_index = 0
+            default_role_index = None
 
     # Bedarf auswählen
     
@@ -104,6 +124,21 @@ with col2:
     filtered_timestamps_bedarf = data_bedarfe.index[
         data_bedarfe["Rollen-Name"] == set_bedarf_role
     ]
+
+    if len(filtered_timestamps_bedarf) == 1:
+        set_first_timestamp_bedarf = filtered_timestamps_bedarf[0]
+        set_second_timestamp_bedarf = set_first_timestamp_bedarf
+        with st.container(border=True):
+            st.write()
+
+    else:
+        set_first_timestamp_bedarf, set_second_timestamp_bedarf = st.select_slider(
+            label = "Zeitpunkte für den Vergleich auswählen:",
+            options = filtered_timestamps_bedarf,
+            value = [min(filtered_timestamps_bedarf), max(filtered_timestamps_bedarf)]
+        )
+
+    """
     set_first_timestamp_bedarf = st.selectbox(
         "Ersten Zeitpunkt auswählen:",
         filtered_timestamps_bedarf,
@@ -116,7 +151,7 @@ with col2:
         key="zweiter_zeitpunkt_2",
         help="Der zweite Zeitpunkt muss später sein als der erste Zeitpunkt, weil hier eine Differenz berechnet wird."
     )
-
+    """
 
 # Erste Zeile mit zwei Diagrammen
 col1, col2 = st.columns(2)
