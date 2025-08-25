@@ -75,4 +75,4 @@ if st.button("Zufallsdatensatz generieren und speichern"):
 if os.path.exists('generated_data.csv'):
     st.subheader("Vorschau auf die letzten 5 generierten Datensätze:")
     df = pd.read_csv('generated_data.csv', sep=';')
-    st.dataframe(df.tail(5)) 
+    st.dataframe(df.tail(5))

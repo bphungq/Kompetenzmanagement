@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from functions.menu import default_menu
+from functions.page import footer
 from config import (
     GOOGLE_SHEET_PROFILES,
     COLUMN_PROFILE_ID,
@@ -212,3 +213,6 @@ with col4:
     fig3.update_traces(textfont_size=12)
     fig3.update_layout(title_font_size=16 + TITLE_FONT_SIZE_INCREASE)
     st.plotly_chart(fig3, use_container_width=False)
+
+# Fußzeile
+footer()

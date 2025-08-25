@@ -11,6 +11,7 @@ from config import (
     CLUSTER_COLUMNS, YEARS_TO_PREDICT
 )
 from functions.menu import default_menu
+from functions.page import footer
 from functions.session_state import check_mode
 from functions.database import get_dataframe_from_gsheet
 
@@ -437,3 +438,6 @@ with placeholder.container():
     )
 
     st.plotly_chart(fig)
+
+# Fußzeile
+footer()

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 from functions.menu import default_menu
+from functions.page import footer
 from functions.user_management import create_profile
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWERS, GOOGLE_SHEET_BEDARFE, COLUMN_INDEX
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
@@ -123,3 +124,6 @@ submenu_functions = {
 selected_submenu = st.segmented_control(label="submenu", options=submenu_options, default=submenu_options[0], label_visibility="collapsed", on_change=clear_session_states_except_mode_and_debug_mode)
 
 submenu_functions[selected_submenu]()
+
+# Fußzeile
+footer()

@@ -1,15 +1,13 @@
 import streamlit as st
 from functions.menu import default_menu
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
-from functions.page import header, footer
+from functions.page import footer
 
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Admin", layout="wide")
 check_mode()
 default_menu()
 
-# Kopfzeile
-header()
 
 # -Seiteninhalt-
 st.title("Admin")

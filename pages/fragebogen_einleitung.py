@@ -4,6 +4,7 @@ import datetime as dt
 import pytz
 from config import INTRODUCTION_TEXT, CONSENT_TEXT, DEMOGRAPHY_TEXT, OPTIONS_INDUSTRY, INTRODUCTION_QUERRY, ADDITIONAL_INFORMATION_IDS, GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID
 from functions.menu import no_menu
+from functions.page import footer
 from functions.data import get_amount_questions, get_question_ids
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
@@ -246,3 +247,6 @@ with st.container(border=True):
         pages_dict[st.session_state.einleitung_page]()
     else:
         st.error("Fehler in der Verarbeitung: Ungültige Seite")
+
+# Fußzeile
+footer()

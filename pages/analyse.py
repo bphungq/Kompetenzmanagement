@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from functions.page import header, footer
+from functions.page import footer
 from functions.menu import default_menu
 from functions.data import (
     get_cluster_names,
@@ -30,8 +30,6 @@ st.set_page_config(page_title="Analyse", layout="wide")
 check_mode()
 default_menu()
 
-# Kopfzeile
-header()
 
 # -Seiteninhalt-
 st.title("Analyse")

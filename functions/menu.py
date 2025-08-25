@@ -25,7 +25,7 @@ def debug_menu():
         st.sidebar.button(label="Modus wechseln", on_click=change_mode)
 
 def default_menu():
-    st.sidebar.image(image="images/Pro-Kom.jpg")
+    st.sidebar.image(image="images/Pro-Kom.png")
     if "mode" not in st.session_state:
         st.sidebar.warning("Modus nicht definiert!")
         st.sidebar.button(label="Modus Analyse", on_click=set_mode, kwargs={"mode_to_set": "analyse"})

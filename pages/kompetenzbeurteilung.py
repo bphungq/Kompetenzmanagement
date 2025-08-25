@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from functions.menu import default_menu
+from functions.page import footer
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX
 from functions.database import get_dataframe_from_gsheet
 from functions.session_state import check_mode
@@ -48,3 +49,6 @@ if selected_id_active_profile is not None:
             st.session_state.id_active_profile = selected_id_active_profile
             st.session_state.name_active_profile = selected_name_active_profile
             st.switch_page("pages/kompetenzen_festlegen.py")
+
+# Fußzeile
+footer()

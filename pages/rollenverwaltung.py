@@ -7,6 +7,7 @@ import pytz
 from pages.user_management import submenu_roles
 
 from functions.menu import default_menu
+from functions.page import footer
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, CLUSTER_COLUMNS, PATH_QUESTIONNAIRE
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
@@ -136,3 +137,6 @@ submenu_functions = {
 selected_submenu = st.segmented_control(label="submenu", options=submenu_options, default=submenu_options[0], label_visibility="collapsed", on_change=clear_session_states_except_mode_and_debug_mode)
 
 submenu_functions[selected_submenu]()
+
+# Fußzeile
+footer()
