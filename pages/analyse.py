@@ -247,42 +247,23 @@ with st.container():
     with cols[1]:
         with st.container(border=False):
             st.subheader("Meta-Daten")
-            st.write(f"Profil-ID: {set_id_active_profile}")
+            st.write(f"Profil-ID: {int(set_id_active_profile)}")
             st.write(f"Name: {set_name_active_profile}")
-            st.write(f"Anzahl Datensätze: {len(filtered_update_time)}")
-            role_value = None
-            if "Rollen-Name" in data_answers.columns:
-                try:
-                    role_mask = (
-                        data_answers.index == set_update_time_active_profile
-                    ) & (data_answers["Profil-ID"] == set_id_active_profile)
-                    role_rows = data_answers.loc[role_mask, "Rollen-Name"]
-                    if len(role_rows) > 0:
-                        role_value = role_rows.iloc[0]
-                except Exception:
-                    role_value = None
-            st.write(f"Rolle: {role_value}" if pd.notna(role_value) else "Rolle: -")
-            age_value = None
-            if "0SD06" in data_answers.columns:
-                try:
-                    age_row = data_answers.loc[set_update_time_active_profile, "0SD06"]
-                    age_value = (
-                        age_row.iloc[0] if isinstance(age_row, pd.Series) else age_row
-                    )
-                except KeyError:
-                    age_value = None
-            display_age = None
-            if age_value is not None and pd.notna(age_value):
-                try:
-                    display_age = int(float(str(age_value).replace(",", ".")))
-                except (ValueError, TypeError):
-                    display_age = None
-            st.write(f"Alter: {display_age}" if display_age is not None else "Alter: -")
+            st.write(f"Anzahl Datenpunkte insgesamt: {len(filtered_update_time)}")
+
+            st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}" if role_for_selection is not None else "Rolle: -")
+
+            age_dataframe = data_answers.loc[set_update_time_active_profile, ["Profil-ID", "0SD06"]]
+            latest_age = age_dataframe.loc[age_dataframe["Profil-ID"] == set_id_active_profile, "0SD06"].values[0]
+            if pd.isna(latest_age):
+                latest_age = None
+            st.write(f"Alter zum gewählten Zeitpunkt: {int(latest_age)} Jahre" if latest_age is not None else "Alter: Nicht angegeben")
+
             last_update_time_formatted = pd.Timestamp(get_latest_update_time(set_id_active_profile)).strftime("%d.%m.%Y")
             st.write(
                 f"Letzte Aktualisierung: {last_update_time_formatted}"
             )
-            
+
             # Rollenverlauf Tabelle
             with st.expander("Rollenverlauf"):
                 if "Rollen-Name" in data_answers.columns:
