@@ -365,11 +365,11 @@ with st.container():
 
                 # Dictionary zum Übersetzen der Werte
                 values_for_trends = {
-                    "weniger wichtig": -0.2, 
-                    "eher weniger wichtig": -0.1, 
+                    "weniger wichtig": -0.1, 
+                    "eher weniger wichtig": -0.05, 
                     "neutral": 0, 
-                    "eher wichtiger": 0.1, 
-                    "wichtiger": 0.2
+                    "eher wichtiger": 0.05, 
+                    "wichtiger": 0.1
                 }
 
                 # Werte aus den Slidern in den Dataframe übertragen
