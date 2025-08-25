@@ -7,7 +7,7 @@ import pytz
 from pages.user_management import submenu_roles
 
 from functions.menu import default_menu
-from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, COLUMN_INDEX, CLUSTER_COLUMNS, PATH_QUESTIONNAIRE
+from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, CLUSTER_COLUMNS, PATH_QUESTIONNAIRE
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 
@@ -20,6 +20,7 @@ default_menu()
 # -Daten einlesen-
 data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
 data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
+answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
 fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=';', encoding='utf-8')
 unique_cluster_names = fragebogen["Cluster-Name"].unique().tolist()
 
@@ -123,12 +124,12 @@ def submenu_edit():
 # -Seiteninhalt-
 st.title("Rollenverwaltung")
 
-submenu_options = ["Daten", "Neuer Datenpunkt", "Rollen bearbeiten", "Rollen zuweisen"]
+submenu_options = ["Daten", "Neuer Datenpunkt", "Datenpunkte bearbeiten", "Rollen zuweisen"]
 
 submenu_functions = {
     "Daten": submenu_data,
     "Neuer Datenpunkt": submenu_new,
-    "Rollen bearbeiten": submenu_edit,
+    "Datenpunkte bearbeiten": submenu_edit,
     "Rollen zuweisen": submenu_roles
 }
 
