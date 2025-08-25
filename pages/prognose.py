@@ -170,6 +170,15 @@ cluster_values_bedarfe_for_role_with_predictions = pd.concat([cluster_values_bed
 with st.container():
     left, right = st.columns(2)
 
+    # -Netzdiagramm Prognose-
+    with left:
+        with st.container(border=False):
+            st.subheader("Netzdiagramm Prognose")
+
+            # Platzhalter für das Netzdiagramm
+            placeholder = st.empty()
+
+
     # -Kompetenzverbesserungsmaßnahmen-
     with right:
         with st.container(border=False):
@@ -241,66 +250,6 @@ with st.container():
                     for index, row in training_programs_with_years.iterrows():
                         year = row["Jahr"]
                         cluster_values_answers_for_profile_with_predictions.loc[cluster_values_answers_for_profile_with_predictions["Jahr"] == year, CLUSTER_COLUMNS] += row[CLUSTER_COLUMNS]
-
-
-    # -Netzdiagramm Prognose-
-    with left:
-        with st.container(border=False):
-            st.subheader("Netzdiagramm Prognose")
-
-            # Jahr zum Anzeigen der Werte auswählen
-            set_year = st.segmented_control(label="Jahr auswählen", options=["Aktuell"] + YEARS_TO_PREDICT, default="Aktuell", label_visibility="collapsed")
-
-            # Min und Max Werte an Skala anpassen
-            cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] = cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] < 1, other=1)
-            cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] = cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] < 1, other=1)
-            cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] = cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] > 5, other=5)
-            cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] = cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] > 5, other=5)
-
-            # Cluster-Werte für das ausgewählte Jahr filtern und in Liste umwandeln
-            cluster_values_answers_for_figure = cluster_values_answers_for_profile_with_predictions.loc[
-                cluster_values_answers_for_profile_with_predictions['Jahr'] == set_year,
-                CLUSTER_COLUMNS
-            ].values.tolist()[0]
-
-            cluster_values_bedarfe_for_figure = cluster_values_bedarfe_for_role_with_predictions.loc[
-                cluster_values_bedarfe_for_role_with_predictions['Jahr'] == set_year,
-                CLUSTER_COLUMNS
-            ].values.tolist()[0]
-
-
-            # -Netzdiagramm definieren-
-            fig = go.Figure()
-
-            # Fläche Bedarf
-            fig.add_trace(go.Scatterpolar(
-                r=cluster_values_bedarfe_for_figure + [cluster_values_bedarfe_for_figure[0]],
-                theta=unique_cluster_names + [unique_cluster_names[0]],
-                fill='toself',
-                name=set_role,
-                line=dict(color="red"),
-                fillcolor="rgba(255, 0, 0, 0.3)",  # Rot mit Transparenz
-            ))
-
-            # Fläche Profil
-            fig.add_trace(go.Scatterpolar(
-                r=cluster_values_answers_for_figure + [cluster_values_answers_for_figure[0]],
-                theta=unique_cluster_names + [unique_cluster_names[0]],
-                fill='toself',
-                name=set_name_active_profile,
-                line=dict(color='blue'),
-                fillcolor='rgba(0, 0, 255, 0.6)',  # Blau mit Transparenz
-            ))
-
-            fig.update_layout(
-                polar=dict(
-                    radialaxis=dict(range=[0, 5], visible=True)
-                ),
-                showlegend=True,
-                title="Netzdiagramm Prognose"
-            )
-
-            st.plotly_chart(fig)
 
 
 with st.container():
@@ -378,32 +327,113 @@ with st.container():
         with st.container(border=False):
             st.subheader("Rollentrendabschätzung")
 
-            # Vektor der Forschungsergebnisse
-            metaanalyse_values = np.array([0.2, 0.2, 0.4, -0.2, 0.0,
-                                      0.4, 0.4, 0.0, 0.2,
-                                      0.4, -0.2])
+            # Werte der Forschungsergebnisse
+            metaanalyse_values = ["eher wichtiger", "eher wichtiger", "wichtiger", "eher weniger wichtig", "neutral", "wichtiger", "wichtiger", "neutral", "eher wichtiger", "wichtiger", "eher weniger wichtig"]
 
-            # Checkbox, ob Forschungsergebnisse berücksichtigt werden sollen
-            checkbox_metaanalyse = st.checkbox("Slider anhand von Forschungsergebnissen einstellen")
+            # Slider Optionen
+            options_slider = ["weniger wichtig", "eher weniger wichtig", "neutral", "eher wichtiger", "wichtiger"]
 
-            # Erstellen der Slider für jede Kompetenz + Überprüfung der Checkbox
-            slider_states ={}
-            for i, name in enumerate(unique_cluster_names):
-                if checkbox_metaanalyse:
-                    slider_states[name] = st.slider(
-                        label=name,
-                        min_value=-0.4,  # Minimaler Wert
-                        max_value=0.4,  # Maximaler Wert
-                        value=metaanalyse_values[i],  # Standardwert (startwert)
-                        step=0.2  # Schrittgröße (wie viel sich der Wert bei jeder Bewegung ändern soll)
-                    )
-                else:
-                    slider_states[name] = st.slider(
-                        label=name,
-                        min_value=-0.4,  # Minimaler Wert
-                        max_value=0.4,  # Maximaler Wert
-                        value=0.0,  # Standardwert (startwert)
-                        step=0.2  # Schrittgröße (wie viel sich der Wert bei jeder Bewegung ändern soll)
-                    )
+            # Button, um Werte festzulegen
+            if st.button("Werte gemäß Forschungsergebnissen übernehmen"):
+                for index, cluster_name in enumerate(unique_cluster_names):
+                    st.session_state[f"slider_{index}"] = metaanalyse_values[index]
 
-            slider_values = np.array(list(slider_states.values()))
+            with st.form("Trends", border=True):
+                with st.container(border=None, height=400):
+                    # Slider ausgeben
+                    for index, cluster_name in enumerate(unique_cluster_names):
+                        if f"slider_{index}" not in st.session_state:
+                            st.session_state[f"slider_{index}"] = "neutral"
+                        st.select_slider(
+                            label = cluster_name,
+                            options = options_slider,
+                            key = f"slider_{index}"
+                        )
+                st.form_submit_button("Trends aktualisieren")
+
+            # Toggle zum verwenden der Trends
+            toggle_trends = st.toggle("Trends aktivieren", value=False)
+            
+            if toggle_trends:
+                # Tabelle erstellen
+                years_trends = list(range(2026, 2031)) # Jahre von 2026 bis 2030
+                columns_trends = ["Jahr"] + CLUSTER_COLUMNS
+                data_trends = {column_trends: [None] * len(years_trends) for column_trends in columns_trends}
+                data_trends["Jahr"] = years_trends
+                trends_dataframe = pd.DataFrame(data_trends)
+
+                # Dictionary zum Übersetzen der Werte
+                values_for_trends = {
+                    "weniger wichtig": -0.2, 
+                    "eher weniger wichtig": -0.1, 
+                    "neutral": 0, 
+                    "eher wichtiger": 0.1, 
+                    "wichtiger": 0.2
+                }
+
+                # Werte aus den Slidern in den Dataframe übertragen
+                for index, cluster_column in enumerate(CLUSTER_COLUMNS):
+                    value = values_for_trends[st.session_state[f"slider_{index}"]]
+                    values = [value, value * 2, value * 3, value * 4, value * 5]
+                    trends_dataframe[cluster_column] = values
+
+                # Trends einberechnen
+                for index, row in trends_dataframe.iterrows():
+                        year = row["Jahr"]
+                        cluster_values_bedarfe_for_role_with_predictions.loc[cluster_values_bedarfe_for_role_with_predictions["Jahr"] == year, CLUSTER_COLUMNS] += row[CLUSTER_COLUMNS]
+
+
+with placeholder.container():
+    # Jahr zum Anzeigen der Werte auswählen
+    set_year = st.segmented_control(label="Jahr auswählen", options=["Aktuell"] + YEARS_TO_PREDICT, default="Aktuell", label_visibility="collapsed")
+
+    # Min und Max Werte an Skala anpassen
+    cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] = cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] < 1, other=1)
+    cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] = cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] < 1, other=1)
+    cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] = cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_answers_for_profile_with_predictions[CLUSTER_COLUMNS] > 5, other=5)
+    cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] = cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS].mask(cluster_values_bedarfe_for_role_with_predictions[CLUSTER_COLUMNS] > 5, other=5)
+
+    # Cluster-Werte für das ausgewählte Jahr filtern und in Liste umwandeln
+    cluster_values_answers_for_figure = cluster_values_answers_for_profile_with_predictions.loc[
+        cluster_values_answers_for_profile_with_predictions['Jahr'] == set_year,
+        CLUSTER_COLUMNS
+    ].values.tolist()[0]
+
+    cluster_values_bedarfe_for_figure = cluster_values_bedarfe_for_role_with_predictions.loc[
+        cluster_values_bedarfe_for_role_with_predictions['Jahr'] == set_year,
+        CLUSTER_COLUMNS
+    ].values.tolist()[0]
+
+
+    # -Netzdiagramm definieren-
+    fig = go.Figure()
+
+    # Fläche Bedarf
+    fig.add_trace(go.Scatterpolar(
+        r=cluster_values_bedarfe_for_figure + [cluster_values_bedarfe_for_figure[0]],
+        theta=unique_cluster_names + [unique_cluster_names[0]],
+        fill='toself',
+        name=set_role,
+        line=dict(color="red"),
+        fillcolor="rgba(255, 0, 0, 0.3)",  # Rot mit Transparenz
+    ))
+
+    # Fläche Profil
+    fig.add_trace(go.Scatterpolar(
+        r=cluster_values_answers_for_figure + [cluster_values_answers_for_figure[0]],
+        theta=unique_cluster_names + [unique_cluster_names[0]],
+        fill='toself',
+        name=set_name_active_profile,
+        line=dict(color='blue'),
+        fillcolor='rgba(0, 0, 255, 0.6)',  # Blau mit Transparenz
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(range=[0, 5], visible=True)
+        ),
+        showlegend=True,
+        title="Netzdiagramm Prognose"
+    )
+
+    st.plotly_chart(fig)
