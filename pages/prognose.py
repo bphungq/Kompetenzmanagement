@@ -177,8 +177,13 @@ with st.container():
             st.subheader("Netzdiagramm Prognose")
 
             # Platzhalter für das Netzdiagramm
-            placeholder = st.empty()
+            placeholder_netzdiagramm = st.empty()
 
+            # Toggle zum verwenden der Maßnahmen
+            toggle_training = st.toggle("Maßnahmen aktivieren", value=True)
+
+            # Toggle zum verwenden der Trends
+            toggle_trends = st.toggle("Trends aktivieren", value=True)
 
     # -Kompetenzverbesserungsmaßnahmen-
     with right:
@@ -241,10 +246,6 @@ with st.container():
 
                     # Form akzeptieren
                     st.form_submit_button("Maßnahmen aktualisieren")
-
-            # Toggle zum verwenden der Maßnahmen
-            if len(training_programs_with_years) > 0:
-                toggle_training = st.toggle("Maßnahmen aktivieren", value=True)
 
                 # Maßnahmen einberechnen
                 if toggle_training:
@@ -351,9 +352,6 @@ with st.container():
                             key = f"slider_{index}"
                         )
                 st.form_submit_button("Trends aktualisieren")
-
-            # Toggle zum verwenden der Trends
-            toggle_trends = st.toggle("Trends aktivieren", value=False)
             
             if toggle_trends:
                 # Tabelle erstellen
@@ -384,7 +382,7 @@ with st.container():
                         cluster_values_bedarfe_for_role_with_predictions.loc[cluster_values_bedarfe_for_role_with_predictions["Jahr"] == year, CLUSTER_COLUMNS] += row[CLUSTER_COLUMNS]
 
 
-with placeholder.container():
+with placeholder_netzdiagramm.container():
     # Jahr zum Anzeigen der Werte auswählen
     set_year = st.segmented_control(label="Jahr auswählen", options=["Aktuell"] + YEARS_TO_PREDICT, default="Aktuell", label_visibility="collapsed")
 
