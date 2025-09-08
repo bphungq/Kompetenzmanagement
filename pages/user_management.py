@@ -21,7 +21,7 @@ answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX
 
 # -Unterseiten-
 def submenu_data():
-    if st.button("Daten aktualisieren"):
+    if st.button("Daten aktualisieren", key="update_data_button_from_user_management"):
         st.rerun(scope="app")
     st.subheader("Vorhandene Profile")
     st.write(data_profiles.sort_index())
@@ -31,14 +31,14 @@ def submenu_data():
 
 def submenu_add():
     set_id_active_profile = st.number_input(label="Profil-ID (zwischen 101 und 999):", min_value=101, max_value=999, value=None)
-    st.button(label="ID prüfen")
+    st.button(label="ID prüfen", key="check_id_button_from_user_management")
     if set_id_active_profile in data_profiles.index:
         st.warning(f"Ein Profil mit der ID {set_id_active_profile} ist bereits vorhanden.")
     elif set_id_active_profile:
         set_name_active_profile = st.text_input(label="Profil Name")
         options_roles = data_bedarfe["Rollen-Name"].unique()
         set_role_active_profile = st.selectbox(label="Rolle", options=options_roles, index=None, placeholder="Rolle auswählen")
-        if st.button("Profil anlegen"):
+        if st.button("Profil anlegen", key="create_profile_button_from_user_management"):
             create_profile(id=set_id_active_profile, name=set_name_active_profile, role=set_role_active_profile)
             st.rerun(scope="app")
 
@@ -63,7 +63,7 @@ def submenu_edit_profiles():
                 )
             }
         )
-        if st.button(label="Änderungen speichern"):
+        if st.button(label="Änderungen speichern", key="save_changes_button_from_user_management"):
             updated_answers = answers.copy()
             updated_answers.update(edited_df)
             update_dataframe_to_gsheet("antworten_test", updated_answers)
@@ -100,7 +100,7 @@ def submenu_roles():
                 )
             }
         )
-        if st.button(label="Änderungen speichern"):
+        if st.button(label="Änderungen speichern", key="save_changes_button_2_from_user_management"):
             updated_answers = answers.copy()
             updated_answers.update(edited_df)
             update_dataframe_to_gsheet("antworten_test", updated_answers)

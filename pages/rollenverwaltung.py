@@ -8,7 +8,7 @@ from pages.user_management import submenu_roles
 
 from functions.menu import default_menu
 from functions.page import footer
-from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, CLUSTER_COLUMNS, PATH_QUESTIONNAIRE
+from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, COLUMN_ROLE, CLUSTER_COLUMNS, PATH_QUESTIONNAIRE
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
 from functions.session_state import clear_session_states_except_mode_and_debug_mode, check_mode
 
@@ -28,7 +28,7 @@ unique_cluster_names = fragebogen["Cluster-Name"].unique().tolist()
 
 # -Unterseiten-
 def submenu_data():
-    if st.button("Daten aktualisieren"):
+    if st.button("Daten aktualisieren", key="update_data_button"):
         st.rerun(scope="app")
     st.subheader("Datenpunkte Rollen")
     st.write(data_bedarfe)
@@ -38,11 +38,11 @@ def submenu_data():
 
 def submenu_new():
     role_selection = st.pills(label="Wie möchten Sie die Rolle auswählen?", options=["Bestehende Rolle übernehmen", "Neue Rolle erstellen"], default=None)
-    unique_roles = data_bedarfe["Rollen-Name"].unique().tolist()
+    unique_roles = data_bedarfe[COLUMN_ROLE].unique().tolist()
     if role_selection == "Bestehende Rolle übernehmen":
         set_role = st.selectbox(label="Rolle auswählen:", options=unique_roles, index=None, placeholder="Rolle")
         if  set_role:
-            id_role = data_bedarfe.loc[data_bedarfe["Rollen-Name"] == set_role, "Rollen-ID"].values[0]
+            id_role = data_bedarfe.loc[data_bedarfe[COLUMN_ROLE] == set_role, "Rollen-ID"].values[0]
     elif role_selection == "Neue Rolle erstellen":
         set_role = st.text_input("Rollen-Name:")
         if set_role in unique_roles:
@@ -71,7 +71,7 @@ def submenu_new():
             if f"value_{cluster_name}" not in st.session_state:
                 st.session_state[f"value_{cluster_name}"] = None
             st.number_input(label=cluster_name, min_value=1.0, max_value=5.0, step=0.1, key=f"value_{cluster_name}")
-        submit_button = st.form_submit_button("Datenpunkt anlegen")
+        submit_button = st.form_submit_button("Datenpunkt anlegen", key="create_datapoint_button")
     if submit_button:
         cluster_values = []
         for cluster_name in unique_cluster_names:
@@ -113,7 +113,7 @@ def submenu_edit():
                 )
             }
         )
-        if st.button(label="Änderungen speichern"):
+        if st.button(label="Änderungen speichern", key="save_changes_button"):
             updated_answers = answers.copy()
             updated_answers.update(edited_df)
             update_dataframe_to_gsheet("antworten_test", updated_answers)
