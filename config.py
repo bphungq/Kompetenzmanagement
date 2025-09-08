@@ -55,6 +55,7 @@ GOOGLE_SHEET_GENERATED_DATA = "datengenerierung"
 COLUMN_TIMESTAMP = "Speicherzeitpunkt"
 COLUMN_PROFILE_ID = "Profil-ID"
 COLUMN_INDEX = "index"
+COLUMN_ROLE = "Rollen-Name"
 
 
 # Spaltennamen für die Cluster-Werte

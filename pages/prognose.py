@@ -8,7 +8,7 @@ from sklearn.metrics import pairwise_distances
 from config import (
     GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_PROFILES, 
     COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE, 
-    CLUSTER_COLUMNS, YEARS_TO_PREDICT
+    CLUSTER_COLUMNS, YEARS_TO_PREDICT, COLUMN_TIMESTAMP, COLUMN_ROLE
 )
 from functions.menu import default_menu
 from functions.page import footer
@@ -25,9 +25,9 @@ st.title("Prognose")
 # -Tabelle für Profile verknüpfen-
 data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
 data_answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-data_answers["Speicherzeitpunkt"] = pd.to_datetime(data_answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
+data_answers[COLUMN_TIMESTAMP] = pd.to_datetime(data_answers[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
 data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
-data_bedarfe["Speicherzeitpunkt"] = pd.to_datetime(data_bedarfe["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
+data_bedarfe[COLUMN_TIMESTAMP] = pd.to_datetime(data_bedarfe[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
 fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=';', encoding='utf-8')
 fragebogen['invertiert'] = fragebogen['invertiert'].fillna(False).astype(bool)
 
@@ -54,28 +54,28 @@ cluster_values_bedarfe_full = data_bedarfe.copy()
 
 # Cluster-Werte der Antworten berechnen
 cluster_values_answers_full = data_answers_inverted.copy()
-cluster_values_answers_full = cluster_values_answers_full[["Speicherzeitpunkt", "Profil-ID", "Rollen-Name"]]
+cluster_values_answers_full = cluster_values_answers_full[[COLUMN_TIMESTAMP, COLUMN_PROFILE_ID, COLUMN_ROLE]]
 for cluster_id in unique_cluster_ids:
     current_question_ids = fragebogen_reduced[fragebogen_reduced["Cluster-Nummer"] == cluster_id]["Frage-ID"].tolist()
     cluster_values_answers_full[f"cluster{cluster_id}"] = data_answers_inverted[current_question_ids].mean(axis=1)
 
 # Spalte Jahr hinzufügen
 cluster_values_answers = cluster_values_answers_full.copy()
-cluster_values_answers["Jahr"] = cluster_values_answers["Speicherzeitpunkt"].dt.year
+cluster_values_answers["Jahr"] = cluster_values_answers[COLUMN_TIMESTAMP].dt.year
 cluster_values_bedarfe = cluster_values_bedarfe_full.copy()
-cluster_values_bedarfe["Jahr"] = cluster_values_bedarfe["Speicherzeitpunkt"].dt.year
+cluster_values_bedarfe["Jahr"] = cluster_values_bedarfe[COLUMN_TIMESTAMP].dt.year
 
 # Spalten entfernen
-cluster_values_answers = cluster_values_answers.drop(columns=["Rollen-Name", "Speicherzeitpunkt"])
-cluster_values_bedarfe = cluster_values_bedarfe.drop(columns=["Rollen-ID", "Speicherzeitpunkt"])
+cluster_values_answers = cluster_values_answers.drop(columns=[COLUMN_ROLE, COLUMN_TIMESTAMP])
+cluster_values_bedarfe = cluster_values_bedarfe.drop(columns=["Rollen-ID", COLUMN_TIMESTAMP])
 
 # Aggregieren nach Jahr und Profil-ID durch Berechnung des Mittelwerts für numerische Spalten
-cluster_values_answers = cluster_values_answers.groupby(["Jahr", "Profil-ID"]).mean(numeric_only=True)
-cluster_values_bedarfe = cluster_values_bedarfe.groupby(["Jahr", "Rollen-Name"]).mean(numeric_only=True)
+cluster_values_answers = cluster_values_answers.groupby(["Jahr", COLUMN_PROFILE_ID]).mean(numeric_only=True)
+cluster_values_bedarfe = cluster_values_bedarfe.groupby(["Jahr", COLUMN_ROLE]).mean(numeric_only=True)
 
 # Sortieren nach Profil-ID und Jahr
-cluster_values_answers = cluster_values_answers.sort_values(by=["Profil-ID", "Jahr"]).reset_index()
-cluster_values_bedarfe = cluster_values_bedarfe.sort_values(by=["Rollen-Name", "Jahr"]).reset_index()
+cluster_values_answers = cluster_values_answers.sort_values(by=[COLUMN_PROFILE_ID, "Jahr"]).reset_index()
+cluster_values_bedarfe = cluster_values_bedarfe.sort_values(by=[COLUMN_ROLE, "Jahr"]).reset_index()
 
 
 # -Abschnitt Auswahl Profil & Rolle-
@@ -86,16 +86,16 @@ with st.container():
     set_id_active_profile = data_profiles.index[data_profiles["Name"] == set_name_active_profile][0]
 
     # Überprüfen, ob Antworten für das Profil vorhanden sind
-    if set_id_active_profile not in data_answers["Profil-ID"].values:
+    if set_id_active_profile not in data_answers[COLUMN_PROFILE_ID].values:
         st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
         st.stop()
 
     # Letzten Aktualisierungszeitpunkt des Profils ausgeben
-    last_update_time_active_profile = data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile].sort_values("Speicherzeitpunkt")["Speicherzeitpunkt"].values[-1]
+    last_update_time_active_profile = data_answers.loc[data_answers[COLUMN_PROFILE_ID] == set_id_active_profile].sort_values(COLUMN_TIMESTAMP)[COLUMN_TIMESTAMP].values[-1]
     formatted_last_update_time_active_profile = pd.Timestamp(last_update_time_active_profile).strftime("%d.%m.%Y")
 
     # Aktuelle Rolle ausgeben
-    current_role = data_profiles["Rollen-Name"].loc[set_id_active_profile]
+    current_role = data_profiles[COLUMN_ROLE].loc[set_id_active_profile]
 
     # Meta-Daten ausgeben
     st.write(f"Profil-ID: {int(set_id_active_profile)}")
@@ -104,7 +104,7 @@ with st.container():
     st.markdown("")
 
     # Rolle auswählen; aktuelle Rolle als Standardwert
-    unique_roles = data_bedarfe["Rollen-Name"].unique().tolist()
+    unique_roles = data_bedarfe[COLUMN_ROLE].unique().tolist()
     if current_role in unique_roles:
         index_role = unique_roles.index(current_role)
     else:
@@ -113,7 +113,7 @@ with st.container():
 
     # Letzten Aktualisierungszeitpunkt der Rolle anzeigen
     if set_role:
-        last_update_time_active_bedarf = data_bedarfe.loc[data_bedarfe["Rollen-Name"] == set_role].sort_values("Speicherzeitpunkt")["Speicherzeitpunkt"].values[-1]
+        last_update_time_active_bedarf = data_bedarfe.loc[data_bedarfe[COLUMN_ROLE] == set_role].sort_values(COLUMN_TIMESTAMP)[COLUMN_TIMESTAMP].values[-1]
         formatted_last_update_time_active_bedarf = pd.Timestamp(last_update_time_active_bedarf).strftime("%d.%m.%Y")
 
         st.write(f"Letzte Aktualisierung der Rolle: {formatted_last_update_time_active_bedarf}")
@@ -126,17 +126,17 @@ with st.container():
 
 # -Datenanalyse-
 # Cluster-Werte für das aktive Profil und die aktive Rolle filtern
-cluster_values_answers_for_profile = cluster_values_answers[cluster_values_answers["Profil-ID"] == set_id_active_profile]
-cluster_values_bedarfe_for_role = cluster_values_bedarfe[cluster_values_bedarfe["Rollen-Name"] == set_role]
+cluster_values_answers_for_profile = cluster_values_answers[cluster_values_answers[COLUMN_PROFILE_ID] == set_id_active_profile]
+cluster_values_bedarfe_for_role = cluster_values_bedarfe[cluster_values_bedarfe[COLUMN_ROLE] == set_role]
 
 # Aktuelle Werte des Profils und der Rolle extrahieren
-cluster_values_answers_for_profile_current = cluster_values_answers_full[cluster_values_answers_full["Profil-ID"] == set_id_active_profile]
-cluster_values_answers_for_profile_current = cluster_values_answers_for_profile_current.sort_values("Speicherzeitpunkt").iloc[[-1]]
+cluster_values_answers_for_profile_current = cluster_values_answers_full[cluster_values_answers_full[COLUMN_PROFILE_ID] == set_id_active_profile]
+cluster_values_answers_for_profile_current = cluster_values_answers_for_profile_current.sort_values(COLUMN_TIMESTAMP).iloc[[-1]]
 cluster_values_answers_for_profile_current["Jahr"] = "Aktuell"
-cluster_values_answers_for_profile_current.drop(columns=["Rollen-Name", "Speicherzeitpunkt"], inplace=True)
-cluster_values_bedarfe_for_role_current = cluster_values_bedarfe_full[cluster_values_bedarfe_full["Rollen-Name"] == set_role]
-cluster_values_bedarfe_for_role_current = cluster_values_bedarfe_for_role_current.sort_values("Speicherzeitpunkt").iloc[[-1]]
-cluster_values_bedarfe_for_role_current.drop(columns=["Rollen-ID", "Speicherzeitpunkt"], inplace=True)
+cluster_values_answers_for_profile_current.drop(columns=[COLUMN_ROLE, COLUMN_TIMESTAMP], inplace=True)
+cluster_values_bedarfe_for_role_current = cluster_values_bedarfe_full[cluster_values_bedarfe_full[COLUMN_ROLE] == set_role]
+cluster_values_bedarfe_for_role_current = cluster_values_bedarfe_for_role_current.sort_values(COLUMN_TIMESTAMP).iloc[[-1]]
+cluster_values_bedarfe_for_role_current.drop(columns=["Rollen-ID", COLUMN_TIMESTAMP], inplace=True)
 cluster_values_bedarfe_for_role_current["Jahr"] = "Aktuell"
 
 
@@ -282,31 +282,31 @@ with st.container():
             distances = pairwise_distances(cluster_values_answers_similarity, metric=metric)
 
             # Ermittlung des index der aktuellen Antwort des gewählten Profils
-            set_answer_index = int(data_answers.loc[data_answers["Profil-ID"] == set_id_active_profile].sort_values("Speicherzeitpunkt").index[-1])
+            set_answer_index = int(data_answers.loc[data_answers[COLUMN_PROFILE_ID] == set_id_active_profile].sort_values(COLUMN_TIMESTAMP).index[-1])
 
             # Finde die Distanzen zum ersten Profil
             distances_to_set_profile_values = distances[set_answer_index]
 
             # DataFrame mit Profil-ID, Rollen-Name und Distanzen erstellen
             distances_to_set_profile_df = pd.DataFrame({
-                "Profil-ID": cluster_values_answers_full["Profil-ID"],
-                "Speicherzeitpunkt": cluster_values_answers_full["Speicherzeitpunkt"],
-                "Rollen-Name": cluster_values_answers_full["Rollen-Name"],
+                COLUMN_PROFILE_ID: cluster_values_answers_full[COLUMN_PROFILE_ID],
+                COLUMN_TIMESTAMP: cluster_values_answers_full[COLUMN_TIMESTAMP],
+                COLUMN_ROLE: cluster_values_answers_full[COLUMN_ROLE],
                 "Abstände": distances_to_set_profile_values 
             })
 
             # Zeilen mit Profil-ID des ausgewählten Profils entfernen
-            indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df["Profil-ID"] == set_id_active_profile].index
+            indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df[COLUMN_PROFILE_ID] == set_id_active_profile].index
             distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
 
             # Profile mit angegebenen Rollen entfernen
             if roles_to_filter:
                 for role in roles_to_filter:
-                    indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df["Rollen-Name"] == role].index
+                    indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df[COLUMN_ROLE] == role].index
                     distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
 
             # Nach Ähnlichkeit sortieren und jede Profil-ID nur einmal listen
-            distances_to_set_profile_df = distances_to_set_profile_df.sort_values("Abstände").drop_duplicates("Profil-ID")
+            distances_to_set_profile_df = distances_to_set_profile_df.sort_values("Abstände").drop_duplicates(COLUMN_PROFILE_ID)
 
             # DataFrame nach Abständen sortieren und die 3 ähnlichsten Profile auswählen
             most_similar_profiles = distances_to_set_profile_df.nsmallest(3, "Abstände")
@@ -316,10 +316,10 @@ with st.container():
             st.write("Die 3 ähnlichsten Profile sind:")
             for loop_index, (row_index, row) in enumerate(most_similar_profiles.iterrows()):
                 with st.container(border=True):
-                    profile_id = int(row["Profil-ID"])
-                    timestamp = pd.Timestamp(row["Speicherzeitpunkt"]).strftime("%d.%m.%Y")
+                    profile_id = int(row[COLUMN_PROFILE_ID])
+                    timestamp = pd.Timestamp(row[COLUMN_TIMESTAMP]).strftime("%d.%m.%Y")
                     profile_name = data_profiles.loc[profile_id, "Name"] if profile_id in data_profiles.index else "Unbekannt"
-                    role_name = row["Rollen-Name"] if pd.notna(row["Rollen-Name"]) else "Keine Rolle zugewiesen"
+                    role_name = row[COLUMN_ROLE] if pd.notna(row[COLUMN_ROLE]) else "Keine Rolle zugewiesen"
                     distance = row["Abstände"]
                     similarity = 100 - (row["Abstände"] / 13.27 * 100) if similarity_measure == "Euklidische Distanz" else 100 - (row["Abstände"] / 44 * 100)
                     # Maximale euklidische Distanz: Wurzel(11 * (5-1)²) = 13.27
@@ -328,14 +328,14 @@ with st.container():
                     st.write(f"Rolle: {role_name} | Abstand: {distance:.2f} | Ähnlichkeit: {similarity:.2f}%")
                     # Rollenverlauf Tabelle
                     with st.expander("Rollenverlauf"):
-                        if "Rollen-Name" in data_answers.columns:
+                        if COLUMN_ROLE in data_answers.columns:
                             # Daten für das ausgewählte Profil filtern
-                            profile_data = data_answers[data_answers["Profil-ID"] == profile_id]
+                            profile_data = data_answers[data_answers[COLUMN_PROFILE_ID] == profile_id]
                             if not profile_data.empty:
                                 # Spalten Speicherzeitpunkt und Rolle auswählen
-                                role_history = profile_data[["Rollen-Name", "Speicherzeitpunkt"]].copy()
-                                role_history["Speicherzeitpunkt"] = role_history["Speicherzeitpunkt"].dt.strftime("%d.%m.%Y")
-                                role_history.set_index("Speicherzeitpunkt", inplace=True)
+                                role_history = profile_data[[COLUMN_ROLE, COLUMN_TIMESTAMP]].copy()
+                                role_history[COLUMN_TIMESTAMP] = role_history[COLUMN_TIMESTAMP].dt.strftime("%d.%m.%Y")
+                                role_history.set_index(COLUMN_TIMESTAMP, inplace=True)
 
                                 # Tabelle anzeigen
                                 st.dataframe(role_history, use_container_width=True)

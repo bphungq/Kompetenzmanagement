@@ -8,6 +8,7 @@ def connect_to_gsheet():
     """
     return st.connection("gsheets", type=GSheetsConnection, ttl=0)
 
+@st.cache_data(show_spinner=True, ttl=1800)
 def get_dataframe_from_gsheet(worksheet_name, index_col = None, refresh_time_in_minutes = 30):
     """
     Lädt einen DataFrame aus der Google Tabelle und setzt optional eine Spalte als Index.

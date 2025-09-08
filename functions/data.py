@@ -7,6 +7,7 @@ from config import (
     GOOGLE_SHEET_BEDARFE,
     COLUMN_TIMESTAMP,
     COLUMN_PROFILE_ID,
+    COLUMN_ROLE,
 )
 from functions.database import get_dataframe_from_gsheet
 
@@ -131,12 +132,12 @@ def get_latest_update_time(profil_id):
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-    answers["Speicherzeitpunkt"] = pd.to_datetime(answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
-    filtered_answers = answers[answers["Profil-ID"] == profil_id]
+    answers[COLUMN_TIMESTAMP] = pd.to_datetime(answers[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    filtered_answers = answers[answers[COLUMN_PROFILE_ID] == profil_id]
     if len(filtered_answers) == 0:
         return None
-    sorted_answers = filtered_answers.sort_values(by="Speicherzeitpunkt", ascending=False)  # type: ignore
-    return sorted_answers["Speicherzeitpunkt"].values[0]
+    sorted_answers = filtered_answers.sort_values(by=COLUMN_TIMESTAMP, ascending=False)  # type: ignore
+    return sorted_answers[COLUMN_TIMESTAMP].values[0]
 
 
 def get_cluster_values_for_correlation_matrix(dataframe: pd.DataFrame):
@@ -172,12 +173,12 @@ def get_selected_cluster_values(
     """
     # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-    answers["Speicherzeitpunkt"] = pd.to_datetime(answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
+    answers[COLUMN_TIMESTAMP] = pd.to_datetime(answers[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
 
     # Filtere die Antworten nach Profil-ID und Zeitpunkt
     filtered_answers = answers[
-        (answers["Profil-ID"] == profil_id)
-        & (answers["Speicherzeitpunkt"] == timestamp)
+        (answers[COLUMN_PROFILE_ID] == profil_id)
+        & (answers[COLUMN_TIMESTAMP] == timestamp)
     ]
 
     if filtered_answers.empty:
@@ -228,14 +229,14 @@ def get_cluster_values_over_time(profil_id, cluster_name):
     # Alle Antworten für die Profil-ID laden
     # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-    answers["Speicherzeitpunkt"] = pd.to_datetime(answers["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
-    filtered_answers = answers[answers["Profil-ID"] == profil_id]
+    answers[COLUMN_TIMESTAMP] = pd.to_datetime(answers[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    filtered_answers = answers[answers[COLUMN_PROFILE_ID] == profil_id]
 
     if len(filtered_answers) == 0:
         return pd.DataFrame()
 
     # Nach Zeitpunkt sortieren
-    sorted_answers = filtered_answers.sort_values(by="Speicherzeitpunkt", ascending=True)  # type: ignore
+    sorted_answers = filtered_answers.sort_values(by=COLUMN_TIMESTAMP, ascending=True)  # type: ignore
 
     # Cluster-Nummer für die gegebene Kategorie finden
     fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
@@ -251,7 +252,7 @@ def get_cluster_values_over_time(profil_id, cluster_name):
         cluster_value = calculate_cluster_values(row)[
             cluster_number - 1
         ]  # -1 weil Index bei 0 beginnt
-        time_data.append(row["Speicherzeitpunkt"])
+        time_data.append(row[COLUMN_TIMESTAMP])
         cluster_values.append(cluster_value)
 
     # DataFrame erstellen
@@ -273,11 +274,11 @@ def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
     """
     # TODO: bedarfe_df als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     bedarfe_df = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
-    bedarfe_df["Speicherzeitpunkt"] = pd.to_datetime(bedarfe_df["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
+    bedarfe_df[COLUMN_TIMESTAMP] = pd.to_datetime(bedarfe_df[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
 
     # Filtere nach Rolle und Zeitpunkt
     filtered_bedarf = bedarfe_df[
-        (bedarfe_df["Rollen-Name"] == role) & (bedarfe_df["Speicherzeitpunkt"] == timestamp)
+        (bedarfe_df[COLUMN_ROLE] == role) & (bedarfe_df[COLUMN_TIMESTAMP] == timestamp)
     ]
 
     if filtered_bedarf.empty:
@@ -324,12 +325,12 @@ def get_latest_update_time_bedarf(role):
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
     bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
-    bedarfe["Speicherzeitpunkt"] = pd.to_datetime(bedarfe["Speicherzeitpunkt"], format='%d.%m.%Y %H:%M')
-    filtered_bedarfe = bedarfe[bedarfe["Rollen-Name"] == role]
+    bedarfe[COLUMN_TIMESTAMP] = pd.to_datetime(bedarfe[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    filtered_bedarfe = bedarfe[bedarfe[COLUMN_ROLE] == role]
     if len(filtered_bedarfe) == 0:
         return None
-    sorted_bedarfe = filtered_bedarfe.sort_values(by="Speicherzeitpunkt", ascending=False)  # type: ignore
-    return sorted_bedarfe["Speicherzeitpunkt"].values[0]
+    sorted_bedarfe = filtered_bedarfe.sort_values(by=COLUMN_TIMESTAMP, ascending=False)  # type: ignore
+    return sorted_bedarfe[COLUMN_TIMESTAMP].values[0]
 
 
 def calculate_cluster_differences(
@@ -427,12 +428,12 @@ def calculate_time_differences_bedarfe(
     bedarfe_df = data_bedarfe
     # Werte für beide Zeitpunkte und Profil-ID filtern
     first_row = bedarfe_df[
-        (bedarfe_df["Rollen-Name"] == role)
-        & (bedarfe_df["Speicherzeitpunkt"] == first_timestamp)
+        (bedarfe_df[COLUMN_ROLE] == role)
+        & (bedarfe_df[COLUMN_TIMESTAMP] == first_timestamp)
     ]
     second_row = bedarfe_df[
-        (bedarfe_df["Rollen-Name"] == role)
-        & (bedarfe_df["Speicherzeitpunkt"] == second_timestamp)
+        (bedarfe_df[COLUMN_ROLE] == role)
+        & (bedarfe_df[COLUMN_TIMESTAMP] == second_timestamp)
     ]
     cluster_names = get_cluster_names()
 

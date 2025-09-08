@@ -21,6 +21,7 @@ from config import (
     GOOGLE_SHEET_PROFILES,
     COLUMN_PROFILE_ID,
     GOOGLE_SHEET_BEDARFE,
+    COLUMN_ROLE,
 )
 from functions.database import get_dataframe_from_gsheet
 from functions.session_state import check_mode
@@ -64,7 +65,7 @@ with col1:
 
     # Zeitpunkt auswählen
     filtered_update_time = data_answers.index[
-        data_answers["Profil-ID"] == set_id_active_profile
+        data_answers[COLUMN_PROFILE_ID] == set_id_active_profile
     ]
     
     # Letzten Zeitpunkt als Standard auswählen
@@ -79,8 +80,8 @@ with col1:
         )
 
     # Prüfen und Rolle ausgeben
-    if set_id_active_profile in data_answers["Profil-ID"].values:
-        role_for_selection = data_answers.loc[(data_answers.index == set_update_time_active_profile) & (data_answers["Profil-ID"] == set_id_active_profile), "Rollen-Name"].values[0]
+    if set_id_active_profile in data_answers[COLUMN_PROFILE_ID].values:
+        role_for_selection = data_answers.loc[(data_answers.index == set_update_time_active_profile) & (data_answers[COLUMN_PROFILE_ID] == set_id_active_profile), COLUMN_ROLE].values[0]
     else:
         st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
         st.stop()
@@ -92,7 +93,7 @@ with col2:
     st.subheader("Rollen Auswahl")
 
     # Bedarf auswählen #format_func=lambda x: f"Profil {x}"
-    unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
+    unique_bedarf_roles = data_bedarfe[COLUMN_ROLE].unique().tolist()
 
     # Rolle auswählen
     set_bedarf_role = st.selectbox(
@@ -101,14 +102,14 @@ with col2:
 
     # Zeitpunkt auswählen
     filtered_timestamps_bedarf = data_bedarfe.index[
-        data_bedarfe["Rollen-Name"] == set_bedarf_role
+        data_bedarfe[COLUMN_ROLE] == set_bedarf_role
     ]
     set_timestamp_bedarf = st.selectbox(
         "Zeitpunkt auswählen:", filtered_timestamps_bedarf, index=int(filtered_timestamps_bedarf.values.argmax())
     )
 
 # Überprüfen, ob Profil in den Antworten vorhanden ist
-if set_id_active_profile not in data_answers["Profil-ID"].values:
+if set_id_active_profile not in data_answers[COLUMN_PROFILE_ID].values:
     st.warning(
         "Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus."
     )
@@ -271,13 +272,13 @@ with st.container():
 
             # Rollenverlauf Tabelle
             with st.expander("Rollenverlauf"):
-                if "Rollen-Name" in data_answers.columns:
+                if COLUMN_ROLE in data_answers.columns:
                     # Daten für das ausgewählte Profil filtern
-                    profile_data = data_answers[data_answers["Profil-ID"] == set_id_active_profile]
+                    profile_data = data_answers[data_answers[COLUMN_PROFILE_ID] == set_id_active_profile]
                     
                     if not profile_data.empty:
                         # Spalten Speicherzeitpunkt und Rolle auswählen
-                        role_history = profile_data[["Rollen-Name"]].copy()
+                        role_history = profile_data[[COLUMN_ROLE]].copy()
                         role_history.index.name = "Speicherzeitpunkt"
                         role_history_df = pd.DataFrame(role_history, index=pd.to_datetime(role_history.index))
                         role_history_df.index = role_history_df.index.strftime("%d.%m.%Y")

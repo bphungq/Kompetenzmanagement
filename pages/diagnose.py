@@ -9,6 +9,7 @@ from config import (
     GOOGLE_SHEET_ANSWERS,
     COLUMN_TIMESTAMP,
     GOOGLE_SHEET_BEDARFE,
+    COLUMN_ROLE,
 )
 from functions.database import get_dataframe_from_gsheet
 from functions.data import (
@@ -65,7 +66,7 @@ with col1:
 
     # Zeitpunkt auswählen
     filtered_update_time = data_answers.index[
-        data_answers["Profil-ID"] == set_id_active_profile
+        data_answers[COLUMN_PROFILE_ID] == set_id_active_profile
     ]
 
     set_first_timestamp_active_profile, set_second_timestamp_active_profile = st.select_slider(
@@ -75,8 +76,8 @@ with col1:
     )
 
     # Prüfen und Rolle ausgeben
-    if set_id_active_profile in data_answers["Profil-ID"].values:
-        role_for_selection = data_answers.loc[(data_answers.index == set_second_timestamp_active_profile) & (data_answers["Profil-ID"] == set_id_active_profile), "Rollen-Name"].values[0]
+    if set_id_active_profile in data_answers[COLUMN_PROFILE_ID].values:
+        role_for_selection = data_answers.loc[(data_answers.index == set_second_timestamp_active_profile) & (data_answers[COLUMN_PROFILE_ID] == set_id_active_profile), COLUMN_ROLE].values[0]
     else:
         st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
         st.stop()
@@ -88,16 +89,16 @@ with col1:
 with col2:
     st.subheader("Rolle Auswahl")
 
-    unique_bedarf_roles = data_bedarfe["Rollen-Name"].unique().tolist()
+    unique_bedarf_roles = data_bedarfe[COLUMN_ROLE].unique().tolist()
 
     # Rolle zum ausgewählten Zeitpunkt ermitteln
     default_role_index = None
-    if len(filtered_update_time) > 0 and "Rollen-Name" in data_answers.columns:
+    if len(filtered_update_time) > 0 and COLUMN_ROLE in data_answers.columns:
         try:
             # Verwende den letzten Zeitpunkt als Standard
             selected_timestamp = filtered_update_time[-1]
-            role_mask = (data_answers.index == selected_timestamp) & (data_answers["Profil-ID"] == set_id_active_profile)
-            role_rows = data_answers.loc[role_mask, "Rollen-Name"]
+            role_mask = (data_answers.index == selected_timestamp) & (data_answers[COLUMN_PROFILE_ID] == set_id_active_profile)
+            role_rows = data_answers.loc[role_mask, COLUMN_ROLE]
             if len(role_rows) > 0:
                 profile_role = role_rows.iloc[0]
                 if pd.notna(profile_role) and profile_role in unique_bedarf_roles:
@@ -113,7 +114,7 @@ with col2:
 
     # Zeitpunkt auswählen
     filtered_timestamps_bedarf = data_bedarfe.index[
-        data_bedarfe["Rollen-Name"] == set_bedarf_role
+        data_bedarfe[COLUMN_ROLE] == set_bedarf_role
     ]
 
     if len(filtered_timestamps_bedarf) == 1:
