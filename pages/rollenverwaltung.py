@@ -71,7 +71,7 @@ def submenu_new():
             if f"value_{cluster_name}" not in st.session_state:
                 st.session_state[f"value_{cluster_name}"] = None
             st.number_input(label=cluster_name, min_value=1.0, max_value=5.0, step=0.1, key=f"value_{cluster_name}")
-        submit_button = st.form_submit_button("Datenpunkt anlegen", key="create_datapoint_button")
+        submit_button = st.form_submit_button("Datenpunkt anlegen")
     if submit_button:
         cluster_values = []
         for cluster_name in unique_cluster_names:
