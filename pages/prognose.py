@@ -7,7 +7,7 @@ from sklearn.metrics import pairwise_distances
 
 from config import (
     GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_PROFILES, 
-    COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE, 
+    COLUMN_PROFILE_ID, COLUMN_ROLE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE,
     CLUSTER_COLUMNS, YEARS_TO_PREDICT, COLUMN_TIMESTAMP, COLUMN_ROLE
 )
 from functions.menu import default_menu
@@ -260,7 +260,16 @@ with st.container():
     # -Ähnlichkeitsmaß-
     with left:
         with st.container(border=False):
-            st.subheader("Ähnlichste Profile")
+            st.subheader("Ähnlichste Profile/Rollen")
+
+            set_mode = st.segmented_control(
+                label="Modus wählen",
+                options=["Profile", "Rollen"],
+                default="Profile",
+                label_visibility="collapsed",
+            )
+
+            OPTION_1 = "Profile"
 
             # Selectbox für Ähnlichkeitsmaß
             similarity_measure = st.selectbox(label="Ähnlichkeitsmaß auswählen:", options=["Euklidische Distanz", "Manhattan-Distanz"], index=0)
@@ -270,34 +279,59 @@ with st.container():
 
             # Tabelle für Ähnlichkeitsmaß vorbereiten
             cluster_values_answers_similarity = cluster_values_answers_full.copy()
+            cluster_values_roles_similarity_full = data_bedarfe.copy()
 
             # Spalten für die Berechnung auswählen
             cluster_values_answers_similarity = cluster_values_answers_similarity[CLUSTER_COLUMNS]
+            cluster_values_roles_similarity = cluster_values_roles_similarity_full[CLUSTER_COLUMNS]
+
+            # Ermittlung des index der aktuellen Antwort des gewählten Profils
+            set_answer_index = int(
+                data_answers.loc[data_answers[COLUMN_PROFILE_ID] == set_id_active_profile].sort_values(
+                    COLUMN_TIMESTAMP).index[-1])
 
             # Berechnung der Paarweisen Distanzen
             if similarity_measure == "Euklidische Distanz":
                 metric = "euclidean"
+                max_dist = 13.27
             else:
                 metric = "cityblock"
-            distances = pairwise_distances(cluster_values_answers_similarity, metric=metric)
+                max_dist = 44
 
-            # Ermittlung des index der aktuellen Antwort des gewählten Profils
-            set_answer_index = int(data_answers.loc[data_answers[COLUMN_PROFILE_ID] == set_id_active_profile].sort_values(COLUMN_TIMESTAMP).index[-1])
+            if set_mode == OPTION_1:
+                distances = pairwise_distances(cluster_values_answers_similarity, metric=metric)
+            else:
+                # --- Vektor der gewählten Person holen ---
+                person_vec = cluster_values_answers_full.loc[set_answer_index, CLUSTER_COLUMNS].values.reshape(1, -1)
+                distances = pairwise_distances(person_vec, cluster_values_roles_similarity, metric=metric)[0]
 
-            # Finde die Distanzen zum ersten Profil
-            distances_to_set_profile_values = distances[set_answer_index]
+            if set_mode == OPTION_1:
+                # Finde die Distanzen zum ersten Profil
+                distances_to_set_profile_values = distances[set_answer_index]
 
-            # DataFrame mit Profil-ID, Rollen-Name und Distanzen erstellen
-            distances_to_set_profile_df = pd.DataFrame({
-                COLUMN_PROFILE_ID: cluster_values_answers_full[COLUMN_PROFILE_ID],
-                COLUMN_TIMESTAMP: cluster_values_answers_full[COLUMN_TIMESTAMP],
-                COLUMN_ROLE: cluster_values_answers_full[COLUMN_ROLE],
-                "Abstände": distances_to_set_profile_values 
-            })
+                # DataFrame mit Profil-ID, Rollen-Name und Distanzen erstellen
+                distances_to_set_profile_df = pd.DataFrame({
+                    COLUMN_PROFILE_ID: cluster_values_answers_full[COLUMN_PROFILE_ID],
+                    COLUMN_TIMESTAMP: cluster_values_answers_full[COLUMN_TIMESTAMP],
+                    COLUMN_ROLE: cluster_values_answers_full[COLUMN_ROLE],
+                    "Abstände": distances_to_set_profile_values
+                })
 
-            # Zeilen mit Profil-ID des ausgewählten Profils entfernen
-            indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df[COLUMN_PROFILE_ID] == set_id_active_profile].index
-            distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
+                # Zeilen mit Profil-ID des ausgewählten Profils entfernen
+                indices_to_drop = distances_to_set_profile_df[distances_to_set_profile_df[COLUMN_PROFILE_ID] == set_id_active_profile].index
+                distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
+
+
+            else:  # Rollenmodus
+
+                distances_to_set_profile_df = pd.DataFrame({
+
+                    COLUMN_ROLE_ID: cluster_values_roles_similarity_full[COLUMN_ROLE_ID],
+                    COLUMN_TIMESTAMP: cluster_values_roles_similarity_full[COLUMN_TIMESTAMP],
+                    COLUMN_ROLE: cluster_values_roles_similarity_full[COLUMN_ROLE],
+                    "Abstände": distances
+
+                })
 
             # Profile mit angegebenen Rollen entfernen
             if roles_to_filter:
@@ -306,43 +340,60 @@ with st.container():
                     distances_to_set_profile_df = distances_to_set_profile_df.drop(index=indices_to_drop)
 
             # Nach Ähnlichkeit sortieren und jede Profil-ID nur einmal listen
-            distances_to_set_profile_df = distances_to_set_profile_df.sort_values("Abstände").drop_duplicates(COLUMN_PROFILE_ID)
+            if set_mode == OPTION_1:
+                distances_to_set_profile_df = distances_to_set_profile_df.sort_values("Abstände").drop_duplicates(COLUMN_PROFILE_ID)
+            else:
+                distances_to_set_profile_df = distances_to_set_profile_df.sort_values("Abstände").drop_duplicates(COLUMN_ROLE_ID)
 
             # DataFrame nach Abständen sortieren und die 3 ähnlichsten Profile auswählen
             most_similar_profiles = distances_to_set_profile_df.nsmallest(3, "Abstände")
 
             # Ausgabe der ähnlichsten Profile
             st.write("")
-            st.write("Die 3 ähnlichsten Profile sind:")
+            if set_mode == OPTION_1:
+                st.write("Die 3 ähnlichsten Profile sind:")
+            else:
+                st.write("Die 3 ähnlichsten Rollen sind:")
             for loop_index, (row_index, row) in enumerate(most_similar_profiles.iterrows()):
-                with st.container(border=True):
-                    profile_id = int(row[COLUMN_PROFILE_ID])
-                    timestamp = pd.Timestamp(row[COLUMN_TIMESTAMP]).strftime("%d.%m.%Y")
-                    profile_name = data_profiles.loc[profile_id, "Name"] if profile_id in data_profiles.index else "Unbekannt"
-                    role_name = row[COLUMN_ROLE] if pd.notna(row[COLUMN_ROLE]) else "Keine Rolle zugewiesen"
-                    distance = row["Abstände"]
-                    similarity = 100 - (row["Abstände"] / 13.27 * 100) if similarity_measure == "Euklidische Distanz" else 100 - (row["Abstände"] / 44 * 100)
-                    # Maximale euklidische Distanz: Wurzel(11 * (5-1)²) = 13.27
-                    # Maximale Manhattan-Distanz: 11 * (5-1) = 44
-                    st.write(f"{loop_index + 1}. {profile_name} am {timestamp}")
-                    st.write(f"Rolle: {role_name} | Abstand: {distance:.2f} | Ähnlichkeit: {similarity:.2f}%")
-                    # Rollenverlauf Tabelle
-                    with st.expander("Rollenverlauf"):
-                        if COLUMN_ROLE in data_answers.columns:
-                            # Daten für das ausgewählte Profil filtern
-                            profile_data = data_answers[data_answers[COLUMN_PROFILE_ID] == profile_id]
-                            if not profile_data.empty:
-                                # Spalten Speicherzeitpunkt und Rolle auswählen
-                                role_history = profile_data[[COLUMN_ROLE, COLUMN_TIMESTAMP]].copy()
-                                role_history[COLUMN_TIMESTAMP] = role_history[COLUMN_TIMESTAMP].dt.strftime("%d.%m.%Y")
-                                role_history.set_index(COLUMN_TIMESTAMP, inplace=True)
 
-                                # Tabelle anzeigen
-                                st.dataframe(role_history, use_container_width=True)
+                if set_mode == OPTION_1:
+                    with st.container(border=True):
+                        profile_id = int(row[COLUMN_PROFILE_ID])
+                        timestamp = pd.Timestamp(row[COLUMN_TIMESTAMP]).strftime("%d.%m.%Y")
+                        profile_name = data_profiles.loc[profile_id, "Name"] if profile_id in data_profiles.index else "Unbekannt"
+                        role_name = row[COLUMN_ROLE] if pd.notna(row[COLUMN_ROLE]) else "Keine Rolle zugewiesen"
+                        distance = row["Abstände"]
+                        similarity = 100 - (row["Abstände"] / 13.27 * 100) if similarity_measure == "Euklidische Distanz" else 100 - (row["Abstände"] / 44 * 100)
+                        # Maximale euklidische Distanz: Wurzel(11 * (5-1)²) = 13.27
+                        # Maximale Manhattan-Distanz: 11 * (5-1) = 44
+                        st.write(f"{loop_index + 1}. {profile_name} am {timestamp}")
+                        st.write(f"Rolle: {role_name} | Abstand: {distance:.2f} | Ähnlichkeit: {similarity:.2f}%")
+                        # Rollenverlauf Tabelle
+                        with st.expander("Rollenverlauf"):
+                            if COLUMN_ROLE in data_answers.columns:
+                                # Daten für das ausgewählte Profil filtern
+                                profile_data = data_answers[data_answers[COLUMN_PROFILE_ID] == profile_id]
+                                if not profile_data.empty:
+                                    # Spalten Speicherzeitpunkt und Rolle auswählen
+                                    role_history = profile_data[[COLUMN_ROLE, COLUMN_TIMESTAMP]].copy()
+                                    role_history[COLUMN_TIMESTAMP] = role_history[COLUMN_TIMESTAMP].dt.strftime("%d.%m.%Y")
+                                    role_history.set_index(COLUMN_TIMESTAMP, inplace=True)
+
+                                    # Tabelle anzeigen
+                                    st.dataframe(role_history, use_container_width=True)
+                                else:
+                                    st.write("Keine Rollendaten für dieses Profil verfügbar.")
                             else:
-                                st.write("Keine Rollendaten für dieses Profil verfügbar.")
-                        else:
-                            st.write("Keine Rollenspalte in den Daten vorhanden.")
+                                st.write("Keine Rollenspalte in den Daten vorhanden.")
+                else: #Rollenmodus
+                    with st.container(border=True):
+                        role_id = row["Rollen-ID"]
+                        role_name = row["Rollen-Name"]
+                        timestamp = pd.Timestamp(row[COLUMN_TIMESTAMP]).strftime("%d.%m.%Y")
+                        distance = row["Abstände"]
+                        similarity = 100 - (distance / max_dist * 100)
+                        st.write(f"{loop_index + 1}. Rolle {role_name} (ID {int(role_id)}) am {timestamp}")
+                        st.write(f"Abstand: {distance:.2f} | Ähnlichkeit: {similarity:.2f}%")
 
 
     # -Rollentrendabschätzung-

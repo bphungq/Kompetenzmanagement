@@ -54,6 +54,7 @@ GOOGLE_SHEET_GENERATED_DATA = "datengenerierung"
 # Spaltennamen
 COLUMN_TIMESTAMP = "Speicherzeitpunkt"
 COLUMN_PROFILE_ID = "Profil-ID"
+COLUMN_ROLE_ID = "Rollen-ID"
 COLUMN_INDEX = "index"
 COLUMN_ROLE = "Rollen-Name"
 
