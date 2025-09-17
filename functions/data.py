@@ -8,6 +8,11 @@ from config import (
     COLUMN_TIMESTAMP,
     COLUMN_PROFILE_ID,
     COLUMN_ROLE,
+    COLUMN_QUESTION_ID,
+    COLUMN_CLUSTER_NAME,
+    COLUMN_SUBSCALE,
+    COLUMN_INVERTED,
+    COLUMN_CLUSTER_NUMBER,
 )
 from functions.database import get_dataframe_from_gsheet
 
@@ -40,8 +45,8 @@ def invert_corresponding_answers(df):
     df_with_inverted_answers = df
     for index in df_with_inverted_answers.index:
         if (
-            index in fragebogen["Frage-ID"].values
-            and fragebogen.loc[fragebogen["Frage-ID"] == index, "invertiert"].values[0]
+            index in fragebogen[COLUMN_QUESTION_ID].values
+            and fragebogen.loc[fragebogen[COLUMN_QUESTION_ID] == index, COLUMN_INVERTED].values[0]
             is True
         ):
             df_with_inverted_answers.loc[index] = invert_dict[
@@ -79,7 +84,37 @@ def get_cluster_names():
     """
     # Funktion zum Abrufen der Cluster-Namen des hinterlegten Fragebogens.
     fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
-    return fragebogen["Cluster-Name"].unique()
+    return fragebogen[COLUMN_CLUSTER_NAME].unique()
+
+
+def get_questionnaire_summary():
+    # Fragebogen einlesen
+    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+
+    summary_dict = {}
+
+    # Gesamtanzahl Fragen pro Cluster vorberechnen
+    cluster_counts = fragebogen.groupby(COLUMN_CLUSTER_NUMBER)[COLUMN_QUESTION_ID].count().to_dict()
+
+    # Daten nach Subskala gruppieren
+    for subscale, group in fragebogen.groupby(COLUMN_SUBSCALE):
+        cluster_num = group[COLUMN_CLUSTER_NUMBER].iloc[0]
+        cluster_name = group[COLUMN_CLUSTER_NAME].iloc[0]
+        questions_in_subscale = group[COLUMN_QUESTION_ID].count()
+        questions_in_cluster = cluster_counts[cluster_num]
+
+        # Frage-IDs für diese Subskala extrahieren
+        question_ids = group[COLUMN_QUESTION_ID].tolist()
+
+        summary_dict[subscale] = {
+            "Cluster-Nummer": int(cluster_num),
+            "Cluster-Name": cluster_name,
+            "Fragenanzahl_Subskala": int(questions_in_subscale),
+            "Fragenanzahl_Cluster": questions_in_cluster,
+            "Frage-IDs": question_ids,
+        }
+
+    return summary_dict
 
 
 def get_cluster_numbers():
@@ -91,7 +126,7 @@ def get_cluster_numbers():
     """
     # Funktion zum Abrufen der Cluster-Nummern des hinterlegten Fragebogens.
     fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
-    return fragebogen["Cluster-Nummer"].unique()
+    return fragebogen[COLUMN_CLUSTER_NUMBER].unique()
 
 
 def get_cluster_table():
@@ -103,7 +138,7 @@ def get_cluster_table():
     """
     # Funktion zum Abrufen der Cluster-Nummern des hinterlegten Fragebogens.
     fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
-    cluster_data = fragebogen[["Cluster-Nummer", "Cluster-Name"]].drop_duplicates()
+    cluster_data = fragebogen[[COLUMN_CLUSTER_NUMBER, COLUMN_CLUSTER_NAME]].drop_duplicates()
     cluster_data.set_index("Cluster-Nummer", inplace=True)
     return cluster_data
 
@@ -117,7 +152,7 @@ def get_question_ids():
     """
     # Funktion zum Abrufen der Frage-IDs als Liste.
     fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
-    return fragebogen["Frage-ID"].tolist()
+    return fragebogen[COLUMN_QUESTION_ID].tolist()
 
 
 def get_latest_update_time(profil_id):
@@ -132,7 +167,9 @@ def get_latest_update_time(profil_id):
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-    answers[COLUMN_TIMESTAMP] = pd.to_datetime(answers[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    answers[COLUMN_TIMESTAMP] = pd.to_datetime(
+        answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
+    )
     filtered_answers = answers[answers[COLUMN_PROFILE_ID] == profil_id]
     if len(filtered_answers) == 0:
         return None
@@ -173,7 +210,9 @@ def get_selected_cluster_values(
     """
     # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-    answers[COLUMN_TIMESTAMP] = pd.to_datetime(answers[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    answers[COLUMN_TIMESTAMP] = pd.to_datetime(
+        answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
+    )
 
     # Filtere die Antworten nach Profil-ID und Zeitpunkt
     filtered_answers = answers[
@@ -193,28 +232,6 @@ def get_selected_cluster_values(
         return None
 
 
-def load_profiles_with_ids(csv_path: str) -> list[str]:
-    """
-    Liest eine CSV-Datei mit Profilen und gibt eine Liste von Strings im Format "ID, Name" zurück.
-    TODO: An google Sheet anpassen; unter config.py Pfad anpassen.
-
-    Args:
-        csv_path (str): Pfad zur CSV-Datei (Semikolon-getrennt)
-
-    Returns:
-        list[str]: Eine Liste wie ["101, Fritz", "102, Peter", ...]
-    """
-    try:
-        df = pd.read_csv(csv_path, sep=";")
-        profiles = df.apply(
-            lambda row: f"{row['Profil-ID']}, {row['Name']}", axis=1
-        ).tolist()
-        return profiles
-    except Exception as e:
-        print(f"Error while loading the file: {e}")
-        return []
-
-
 def get_cluster_values_over_time(profil_id, cluster_name):
     """
     Berechnet die Cluster-Werte für eine bestimmte Kategorie über die Zeit.
@@ -229,7 +246,9 @@ def get_cluster_values_over_time(profil_id, cluster_name):
     # Alle Antworten für die Profil-ID laden
     # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
-    answers[COLUMN_TIMESTAMP] = pd.to_datetime(answers[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    answers[COLUMN_TIMESTAMP] = pd.to_datetime(
+        answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
+    )
     filtered_answers = answers[answers[COLUMN_PROFILE_ID] == profil_id]
 
     if len(filtered_answers) == 0:
@@ -240,8 +259,8 @@ def get_cluster_values_over_time(profil_id, cluster_name):
 
     # Cluster-Nummer für die gegebene Kategorie finden
     fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
-    cluster_data = fragebogen[fragebogen["Cluster-Name"] == cluster_name]
-    cluster_number = int(cluster_data["Cluster-Nummer"].iloc[0])
+    cluster_data = fragebogen[fragebogen[COLUMN_CLUSTER_NAME] == cluster_name]
+    cluster_number = int(cluster_data[COLUMN_CLUSTER_NUMBER].iloc[0])
 
     # Zeitpunkte und Cluster-Werte sammeln
     time_data = []
@@ -261,6 +280,63 @@ def get_cluster_values_over_time(profil_id, cluster_name):
     return result_df
 
 
+def get_subscale_values_over_time(profil_id, subscale_name):
+    """
+    Berechnet die Subskala-Werte für eine bestimmte Subskala über die Zeit.
+
+    Args:
+        profil_id: Profil-ID für die die Subskala-Werte berechnet werden sollen
+        subscale_name (str): Name der Subskala
+
+    Returns:
+        pandas.DataFrame: DataFrame mit Zeitpunkten und Subskala-Werten für die gegebene Subskala
+    """
+    # Alle Antworten für die Profil-ID laden
+    answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    answers[COLUMN_TIMESTAMP] = pd.to_datetime(
+        answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
+    )
+    filtered_answers = answers[answers[COLUMN_PROFILE_ID] == profil_id]
+
+    if len(filtered_answers) == 0:
+        return pd.DataFrame()
+
+    # Nach Zeitpunkt sortieren
+    sorted_answers = filtered_answers.sort_values(by=COLUMN_TIMESTAMP, ascending=True)  # type: ignore
+
+    # Fragebogen laden und Frage-IDs für die Subskala finden
+    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    subscale_data = fragebogen[fragebogen[COLUMN_SUBSCALE] == subscale_name]
+    question_ids = subscale_data[COLUMN_QUESTION_ID].tolist()
+
+    if not question_ids:
+        return pd.DataFrame()
+
+    # Zeitpunkte und Subskala-Werte sammeln
+    time_data = []
+    subscale_values = []
+
+    for _, row in sorted_answers.iterrows():
+        # Nur die Fragen für diese Subskala betrachten
+        subscale_answers = row[question_ids]
+
+        # Invertierte Antworten berücksichtigen
+        df_with_inverted_answers = invert_corresponding_answers(subscale_answers)
+
+        # Durchschnittswert für die Subskala berechnen
+        subscale_value = round(
+            df_with_inverted_answers.sum() / len(df_with_inverted_answers), 1
+        )
+
+        time_data.append(row[COLUMN_TIMESTAMP])
+        subscale_values.append(subscale_value)
+
+    # DataFrame erstellen
+    result_df = pd.DataFrame({"Zeitpunkt": time_data, "Wert": subscale_values})
+
+    return result_df
+
+
 def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
     """
     Ruft die Bedarfe für eine bestimmte Rolle ab.
@@ -274,7 +350,9 @@ def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
     """
     # TODO: bedarfe_df als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
     bedarfe_df = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
-    bedarfe_df[COLUMN_TIMESTAMP] = pd.to_datetime(bedarfe_df[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    bedarfe_df[COLUMN_TIMESTAMP] = pd.to_datetime(
+        bedarfe_df[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
+    )
 
     # Filtere nach Rolle und Zeitpunkt
     filtered_bedarf = bedarfe_df[
@@ -294,25 +372,6 @@ def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
     return cluster_bedarfe
 
 
-def get_available_bedarfe_profiles(bedarfe_df: pd.DataFrame) -> list:
-    """
-    Ruft alle verfügbaren Profil-IDs aus der Bedarfe-Tabelle ab.
-
-    Args:
-        bedarfe_df (pandas.DataFrame): DataFrame mit Bedarfs-Daten
-
-    Returns:
-        list: Liste der verfügbaren Profil-IDs
-    """
-
-    if bedarfe_df.empty:
-        return []
-
-    # Extrahiere eindeutige Profil-IDs
-    available_profiles = bedarfe_df.index.unique().tolist()
-    return sorted(available_profiles)
-
-
 def get_latest_update_time_bedarf(role):
     """
     Ruft den Zeitpunkt des letzten Eintrags für eine bestimmte Rolle ab.
@@ -325,7 +384,9 @@ def get_latest_update_time_bedarf(role):
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
     bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
-    bedarfe[COLUMN_TIMESTAMP] = pd.to_datetime(bedarfe[COLUMN_TIMESTAMP], format='%d.%m.%Y %H:%M')
+    bedarfe[COLUMN_TIMESTAMP] = pd.to_datetime(
+        bedarfe[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
+    )
     filtered_bedarfe = bedarfe[bedarfe[COLUMN_ROLE] == role]
     if len(filtered_bedarfe) == 0:
         return None
@@ -418,7 +479,7 @@ def calculate_time_differences_bedarfe(
 
     Args:
         data_bedarfe (pandas.DataFrame): DataFrame mit Bedarfs-Daten
-        profile_id: Profil-ID für die die Differenzen berechnet werden sollen
+        role: Rolle für die die Bedarfe abgerufen werden sollen
         first_timestamp: Erster Zeitpunkt
         second_timestamp: Zweiter Zeitpunkt
 

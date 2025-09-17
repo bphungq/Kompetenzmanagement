@@ -57,6 +57,15 @@ COLUMN_PROFILE_ID = "Profil-ID"
 COLUMN_INDEX = "index"
 COLUMN_ROLE = "Rollen-Name"
 
+# Spaltennamen in Fragebogen
+COLUMN_QUESTION_ID = "Frage-ID"
+COLUMN_CLUSTER_NUMBER = "Cluster-Nummer"
+COLUMN_CLUSTER_NAME = "Cluster-Name"
+COLUMN_SUBSCALE = "Subskala"
+COLUMN_QUESTION = "Frage"
+COLUMN_INVERTED = "invertiert"
+
+
 
 # Spaltennamen für die Cluster-Werte
 CLUSTER_COLUMNS = ["cluster1", "cluster2", "cluster3", "cluster4", "cluster5", "cluster6", "cluster7", "cluster8", "cluster9", "cluster10", "cluster11"]

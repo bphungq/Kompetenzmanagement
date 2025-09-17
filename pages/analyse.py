@@ -10,10 +10,12 @@ from functions.data import (
     get_selected_cluster_values,
     get_latest_update_time,
     get_cluster_values_over_time,
+    get_subscale_values_over_time,
     calculate_cluster_differences,
     create_gap_analysis_chart,
     get_gap_analysis_legend,
     get_bedarfe_for_role,
+    get_questionnaire_summary,
 )
 from config import (
     GOOGLE_SHEET_ANSWERS,
@@ -50,7 +52,7 @@ data_bedarfe = get_dataframe_from_gsheet(
 )
 data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
 
-
+# Profil und Rollenauswahl in 2 Spalten
 col1, col2 = st.columns(2)
 
 with col1:
@@ -72,11 +74,17 @@ with col1:
     if len(filtered_update_time) > 0:
         default_time_index = len(filtered_update_time) - 1
         set_update_time_active_profile = st.selectbox(
-            "Zeitpunkt auswählen:", filtered_update_time, index=default_time_index, key="analyse_zeitpunkt_1"
+            "Zeitpunkt auswählen:",
+            filtered_update_time,
+            index=default_time_index,
+            key="analyse_zeitpunkt_1",
+            format_func=lambda x: x.strftime("%d.%m.%Y %H:%M") if hasattr(x, "strftime") else str(x),
         )
     else:
         set_update_time_active_profile = st.selectbox(
-            "Zeitpunkt auswählen:", ["Keine Daten verfügbar"], key="analyse_zeitpunkt_1"
+            "Zeitpunkt auswählen:",
+            ["Keine Daten verfügbar"],
+            key="analyse_zeitpunkt_1",
         )
 
     # Prüfen und Rolle ausgeben
@@ -105,7 +113,10 @@ with col2:
         data_bedarfe[COLUMN_ROLE] == set_bedarf_role
     ]
     set_timestamp_bedarf = st.selectbox(
-        "Zeitpunkt auswählen:", filtered_timestamps_bedarf, index=int(filtered_timestamps_bedarf.values.argmax())
+        "Zeitpunkt auswählen:",
+        filtered_timestamps_bedarf,
+        index=int(filtered_timestamps_bedarf.values.argmax()),
+        format_func=lambda x: x.strftime("%d.%m.%Y %H:%M") if hasattr(x, "strftime") else str(x),
     )
 
 # Überprüfen, ob Profil in den Antworten vorhanden ist
@@ -115,180 +126,240 @@ if set_id_active_profile not in data_answers[COLUMN_PROFILE_ID].values:
     )
     st.stop()
 
-with st.container():
-    cols = st.columns(2)
-    # -Netzdiagramm Kompetenzen-
-    with cols[0]:
-        with st.container(border=False):
-            st.subheader("Netzdiagramm Kompetenzen & Bedarfe")
-            # Cluster-Werte für aktives Profil und Bedarf abrufen
-            cluster_values_profil = get_selected_cluster_values(
-                set_id_active_profile, set_update_time_active_profile
+# Zwei Spalten für Diagramme
+cols = st.columns(2)
+# -Netzdiagramm Kompetenzen-
+with cols[0]:
+    st.subheader("Netzdiagramm Kompetenzen & Bedarfe")
+    # Cluster-Werte für aktives Profil und Bedarf abrufen
+    cluster_values_profil = get_selected_cluster_values(
+        set_id_active_profile, set_update_time_active_profile
+    )
+    cluster_values_bedarf = get_bedarfe_for_role(
+        set_bedarf_role, set_timestamp_bedarf
+    )
+
+    kategorien = get_cluster_names()
+    kategorien_list = kategorien.tolist()
+    questionnaire_summary = get_questionnaire_summary()
+
+    # Überprüfen, ob Daten verfügbar sind
+    if cluster_values_profil is not None and cluster_values_bedarf is not None:
+        fig = go.Figure()
+        # Fläche Bedarf
+        fig.add_trace(
+            go.Scatterpolar(
+                r=cluster_values_bedarf + [cluster_values_bedarf[0]],
+                theta=kategorien_list + [kategorien_list[0]],
+                fill="toself",
+                name=set_bedarf_role,
+                line=dict(color="red"),
+                fillcolor="rgba(255, 0, 0, 0.3)",  # Rot mit Transparenz
             )
-            cluster_values_bedarf = get_bedarfe_for_role(
-                set_bedarf_role, set_timestamp_bedarf
+        )
+
+        # Fläche Profil
+        fig.add_trace(
+            go.Scatterpolar(
+                r=cluster_values_profil + [cluster_values_profil[0]],
+                theta=kategorien_list + [kategorien_list[0]],
+                fill="toself",
+                name=set_name_active_profile,
+                line=dict(color="blue"),
+                fillcolor="rgba(0, 0, 255, 0.6)",  # Blau mit Transparenz
             )
+        )
 
-            kategorien = get_cluster_names()
-            kategorien_list = kategorien.tolist()
+        fig.update_layout(
+            polar=dict(radialaxis=dict(range=[0, 5], visible=True)),
+            showlegend=True,
+        )
 
-            # Überprüfen, ob Daten verfügbar sind
-            if cluster_values_profil is not None and cluster_values_bedarf is not None:
-                fig = go.Figure()
-                # Fläche Bedarf
-                fig.add_trace(
-                    go.Scatterpolar(
-                        r=cluster_values_bedarf + [cluster_values_bedarf[0]],
-                        theta=kategorien_list + [kategorien_list[0]],
-                        fill="toself",
-                        name=set_bedarf_role,
-                        line=dict(color="red"),
-                        fillcolor="rgba(255, 0, 0, 0.3)",  # Rot mit Transparenz
-                    )
-                )
+        st.plotly_chart(fig)
+    else:
+        st.warning("Keine Daten für das Netzdiagramm verfügbar. Bitte überprüfen Sie die Auswahl.")
 
-                # Fläche Profil
-                fig.add_trace(
-                    go.Scatterpolar(
-                        r=cluster_values_profil + [cluster_values_profil[0]],
-                        theta=kategorien_list + [kategorien_list[0]],
-                        fill="toself",
-                        name=set_name_active_profile,
-                        line=dict(color="blue"),
-                        fillcolor="rgba(0, 0, 255, 0.6)",  # Blau mit Transparenz
-                    )
-                )
+# -Profilentwicklung Diagramm-
+with cols[1]:
+    st.subheader("Profilentwicklung")
+    subcols = st.columns(2)
+    with subcols[0]:
+        set_category = st.selectbox(
+            "Kategorie:", kategorien, key="analyse_kategorien_1"
+        )
+    with subcols[1]:
+        # Unterkategorien (Subskalen) für die gewählte Kategorie aus questionnaire_summary ableiten
+        if isinstance(questionnaire_summary, dict):
+            subscales_for_category = [
+                sub for sub, info in questionnaire_summary.items() if info.get("Cluster-Name") == set_category
+            ]
+        else:
+            subscales_for_category = []
+        selected_subscales = st.multiselect(
+            "Unterkategorien:", subscales_for_category, default=None, key="analyse_unterkategorien_1"
+        )
 
-                fig.update_layout(
-                    polar=dict(radialaxis=dict(range=[0, 5], visible=True)),
-                    showlegend=True,
-                )
+    # Zeitreihen-Daten für die ausgewählte Kategorie laden
+    time_series_data = get_cluster_values_over_time(
+        set_id_active_profile, set_category
+    )
 
-                st.plotly_chart(fig)
-            else:
-                st.warning("Keine Daten für das Netzdiagramm verfügbar. Bitte überprüfen Sie die Auswahl.")
+    # Plotly Figure erstellen
+    fig = go.Figure()
 
-    # -Profilentwicklung Diagramm-
-    with cols[1]:
-        with st.container(border=False):
-            st.subheader("Profilentwicklung")
-            set_category = st.selectbox(
-                "Kategorie:", kategorien, key="analyse_kategorien_1"
+    # Hauptkategorie hinzufügen, falls Daten verfügbar
+    if not time_series_data.empty:
+        # Zeitpunkt in Jahr konvertieren
+        time_series_data["Jahr"] = pd.to_datetime(
+            time_series_data["Zeitpunkt"], format="%d.%m.%Y %H:%M"
+        ).dt.year
+
+        # Hauptkategorie-Linie hinzufügen
+        fig.add_trace(
+            go.Scatter(
+                x=time_series_data["Jahr"],
+                y=time_series_data["Wert"],
+                mode="lines+markers",
+                name=set_category,
+                line=dict(width=3, color="black"),
+                marker=dict(size=8)
             )
+        )
 
-            # Zeitreihen-Daten für die ausgewählte Kategorie laden
-            time_series_data = get_cluster_values_over_time(
-                set_id_active_profile, set_category
+    # Ausgewählte Unterkategorien hinzufügen
+    if selected_subscales:
+        colors = px.colors.qualitative.Set1  # Verschiedene Farben für Unterkategorien
+        
+        for i, subscale in enumerate(selected_subscales):
+            subscale_data = get_subscale_values_over_time(
+                set_id_active_profile, subscale
             )
-
-            if not time_series_data.empty:
+            
+            if not subscale_data.empty:
                 # Zeitpunkt in Jahr konvertieren
-                time_series_data["Jahr"] = pd.to_datetime(
-                    time_series_data["Zeitpunkt"], format="%d.%m.%Y %H:%M"
+                subscale_data["Jahr"] = pd.to_datetime(
+                    subscale_data["Zeitpunkt"], format="%d.%m.%Y %H:%M"
                 ).dt.year
-
-                # Plotly Liniendiagramm erstellen
-                fig = px.line(
-                    time_series_data,
-                    x="Jahr",
-                    y="Wert",
-                    title=f"Entwicklung: {set_category}",
-                    labels={"Jahr": "Jahr", "Wert": ""},
-                    markers=True,
+                
+                # Unterkategorie-Linie hinzufügen
+                fig.add_trace(
+                    go.Scatter(
+                        x=subscale_data["Jahr"],
+                        y=subscale_data["Wert"],
+                        mode="lines+markers",
+                        name=subscale,
+                        line=dict(width=2, color=colors[i % len(colors)]),
+                        marker=dict(size=6)
+                    )
                 )
 
-                # y-Achse auf 1-5 begrenzen
-                fig.update_layout(
-                    yaxis=dict(range=[1, 5]), xaxis=dict(type="linear"), height=400
-                )
+    # Layout anpassen
+    fig.update_layout(
+        title=f"Entwicklung: {set_category}",
+        xaxis_title="Jahr",
+        yaxis_title="Wert",
+        yaxis=dict(range=[1, 5.3]),
+        xaxis=dict(type="linear"),
+        height=400,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.2,
+            xanchor="right",
+            x=1
+        )
+    )
 
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.write("Keine Daten für die Profilentwicklung verfügbar.")
+    # Diagramm anzeigen, falls mindestens eine Linie vorhanden ist
+    if fig.data:
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.write("Keine Daten für die Profilentwicklung verfügbar.")
 
-with st.container():
-    cols = st.columns(2)
+# Zwei Spalten für Gap-Analyse und Meta-Daten
+cols = st.columns(2)
 
-    # GAP-Analyse
-    with cols[0]:
-        with st.container(border=False):
-            st.subheader("Gap-Analyse")
+# GAP-Analyse
+with cols[0]:
+    with st.container(border=False):
+        st.subheader("Gap-Analyse")
 
-            if not data_bedarfe.empty:
-                # Differenzen berechnen mit modularer Funktion
-                differences_df = calculate_cluster_differences(
-                    set_id_active_profile,
-                    set_bedarf_role,
-                    set_update_time_active_profile,
-                    set_timestamp_bedarf,
-                )
-            else:
-                differences_df = pd.DataFrame()
+        if not data_bedarfe.empty:
+            # Differenzen berechnen mit modularer Funktion
+            differences_df = calculate_cluster_differences(
+                set_id_active_profile,
+                set_bedarf_role,
+                set_update_time_active_profile,
+                set_timestamp_bedarf,
+            )
+        else:
+            differences_df = pd.DataFrame()
 
-            if not differences_df.empty:
-                # GAP-Diagramm
-                title = f""
-                fig = create_gap_analysis_chart(
-                    differences_df,
-                    title,
-                    "Differenz (Profil - Bedarf)",
-                    positive_color="blue",
-                    show_legend=False,
-                )
-
-                if fig:
-                    # Höhe für dieses Diagramm anpassen
-                    fig.update_layout(height=500)
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.markdown(get_gap_analysis_legend("analyse"))
-
-            else:
-                st.warning("Keine Daten für die Differenzberechnung verfügbar.")
-
-    # -Meta-Daten-
-    with cols[1]:
-        with st.container(border=False):
-            st.subheader("Meta-Daten")
-            st.write(f"Profil-ID: {int(set_id_active_profile)}")
-            st.write(f"Name: {set_name_active_profile}")
-            st.write(f"Anzahl Datenpunkte insgesamt: {len(filtered_update_time)}")
-
-            st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}" if role_for_selection is not None else "Rolle: -")
-
-            age_dataframe = data_answers.loc[data_answers.index == set_update_time_active_profile, ["Profil-ID", "0SD06"]]
-            latest_age_row = age_dataframe.loc[age_dataframe["Profil-ID"] == set_id_active_profile]
-            if not latest_age_row.empty:
-                latest_age = latest_age_row["0SD06"].values[0]
-            else:
-                latest_age = None  # Fallback für leere Ergebnisse
-            if pd.isna(latest_age):
-                latest_age = None
-            st.write(f"Alter zum gewählten Zeitpunkt: {int(latest_age)} Jahre" if latest_age is not None else "Alter: Nicht angegeben")
-
-            last_update_time_formatted = pd.Timestamp(get_latest_update_time(set_id_active_profile)).strftime("%d.%m.%Y")
-            st.write(
-                f"Letzte Aktualisierung: {last_update_time_formatted}"
+        if not differences_df.empty:
+            # GAP-Diagramm
+            title = f""
+            fig = create_gap_analysis_chart(
+                differences_df,
+                title,
+                "Differenz (Profil - Bedarf)",
+                positive_color="blue",
+                show_legend=False,
             )
 
-            # Rollenverlauf Tabelle
-            with st.expander("Rollenverlauf"):
-                if COLUMN_ROLE in data_answers.columns:
-                    # Daten für das ausgewählte Profil filtern
-                    profile_data = data_answers[data_answers[COLUMN_PROFILE_ID] == set_id_active_profile]
-                    
-                    if not profile_data.empty:
-                        # Spalten Speicherzeitpunkt und Rolle auswählen
-                        role_history = profile_data[[COLUMN_ROLE]].copy()
-                        role_history.index.name = "Speicherzeitpunkt"
-                        role_history_df = pd.DataFrame(role_history, index=pd.to_datetime(role_history.index))
-                        role_history_df.index = role_history_df.index.strftime("%d.%m.%Y")
+            if fig:
+                # Höhe für dieses Diagramm anpassen
+                fig.update_layout(height=500)
+                st.plotly_chart(fig, use_container_width=True)
+                st.markdown(get_gap_analysis_legend("analyse"))
 
-                        # Tabelle anzeigen
-                        st.dataframe(role_history_df, use_container_width=True)
-                    else:
-                        st.write("Keine Rollendaten für dieses Profil verfügbar.")
+        else:
+            st.warning("Keine Daten für die Differenzberechnung verfügbar.")
+
+# -Meta-Daten-
+with cols[1]:
+    with st.container(border=False):
+        st.subheader("Meta-Daten")
+        st.write(f"Profil-ID: {int(set_id_active_profile)}")
+        st.write(f"Name: {set_name_active_profile}")
+        st.write(f"Anzahl Datenpunkte insgesamt: {len(filtered_update_time)}")
+
+        st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}" if role_for_selection is not None else "Rolle: -")
+
+        age_dataframe = data_answers.loc[data_answers.index == set_update_time_active_profile, ["Profil-ID", "0SD06"]]
+        latest_age_row = age_dataframe.loc[age_dataframe["Profil-ID"] == set_id_active_profile]
+        if not latest_age_row.empty:
+            latest_age = latest_age_row["0SD06"].values[0]
+        else:
+            latest_age = None  # Fallback für leere Ergebnisse
+        if pd.isna(latest_age):
+            latest_age = None
+        st.write(f"Alter zum gewählten Zeitpunkt: {int(latest_age)} Jahre" if latest_age is not None else "Alter: Nicht angegeben")
+
+        last_update_time_formatted = pd.Timestamp(get_latest_update_time(set_id_active_profile)).strftime("%d.%m.%Y")
+        st.write(
+            f"Letzte Aktualisierung: {last_update_time_formatted}"
+        )
+
+        # Rollenverlauf Tabelle
+        with st.expander("Rollenverlauf"):
+            if COLUMN_ROLE in data_answers.columns:
+                # Daten für das ausgewählte Profil filtern
+                profile_data = data_answers[data_answers[COLUMN_PROFILE_ID] == set_id_active_profile]
+
+                if not profile_data.empty:
+                    # Spalten Speicherzeitpunkt und Rolle auswählen
+                    role_history = profile_data[[COLUMN_ROLE]].copy()
+                    role_history.index.name = "Speicherzeitpunkt"
+                    role_history_df = pd.DataFrame(role_history, index=pd.to_datetime(role_history.index))
+                    role_history_df.index = role_history_df.index.strftime("%d.%m.%Y")
+
+                    # Tabelle anzeigen
+                    st.dataframe(role_history_df, use_container_width=True)
                 else:
-                    st.write("Keine Rollenspalte in den Daten vorhanden.")
+                    st.write("Keine Rollendaten für dieses Profil verfügbar.")
+            else:
+                st.write("Keine Rollenspalte in den Daten vorhanden.")
 
 # Fußzeile
 footer()

@@ -40,6 +40,7 @@ def default_menu():
         st.sidebar.page_link("pages/admin.py", label="Administration")
         st.sidebar.page_link("pages/fragebogen_start.py", label="Fragebogen")
         st.sidebar.page_link("pages/export.py", label="Export")
+        st.sidebar.page_link("pages/import.py", label="Import")
     elif st.session_state.mode == "fragebogen":
         st.sidebar.header("Navigation")
         st.sidebar.page_link("pages/fragebogen_start.py", label="Fragebogen")
