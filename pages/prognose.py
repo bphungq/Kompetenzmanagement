@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import pairwise_distances
 
 from config import (
-    GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_PROFILES, 
+    GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_PROFILES,
     COLUMN_PROFILE_ID, COLUMN_ROLE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE,
     CLUSTER_COLUMNS, YEARS_TO_PREDICT, COLUMN_TIMESTAMP, COLUMN_ROLE
 )
@@ -197,7 +197,7 @@ with st.container():
             training_programs = ["Führungskräfte Coaching", "Forschungslehrgang", "Job Rotation", "Teambuilding", "Zeitmanagement Workshop", "Design Thinking Workshop"]
             set_active_training_programs = st.multiselect("Wähle Maßnahmen aus:", training_programs, placeholder="Maßnahmen")
 
-            # Nur anzeigen, wenn Maßnahmen ausgewählt wurden 
+            # Nur anzeigen, wenn Maßnahmen ausgewählt wurden
             if set_active_training_programs:
                 with st.form("Maßnahmen", border=True):
                     # Multiselect-Box für Jahre
@@ -262,20 +262,21 @@ with st.container():
         with st.container(border=False):
             st.subheader("Ähnlichste Profile/Rollen")
 
+            OPTION_1 = "Profile" # für if set_mode Bedingungen weiter unten
+            OPTION_2 = "Rollen"
+
             set_mode = st.segmented_control(
                 label="Modus wählen",
-                options=["Profile", "Rollen"],
-                default="Profile",
+                options=[OPTION_1, OPTION_2],
+                default=OPTION_1,
                 label_visibility="collapsed",
             )
-
-            OPTION_1 = "Profile"
 
             # Selectbox für Ähnlichkeitsmaß
             similarity_measure = st.selectbox(label="Ähnlichkeitsmaß auswählen:", options=["Euklidische Distanz", "Manhattan-Distanz"], index=0)
 
-            # Multiselect mit Rollen, die ausgeschlossen werden sollen            
-            roles_to_filter = st.multiselect("Rollen ausschließen:", unique_roles, placeholder="Rollen")
+            # Multiselect mit Rollen, die ausgeschlossen werden sollen
+            roles_to_filter = st.multiselect("Rollen ausschließen:", unique_roles, placeholder=OPTION_2)
 
             # Tabelle für Ähnlichkeitsmaß vorbereiten
             cluster_values_answers_similarity = cluster_values_answers_full.copy()
@@ -350,10 +351,7 @@ with st.container():
 
             # Ausgabe der ähnlichsten Profile
             st.write("")
-            if set_mode == OPTION_1:
-                st.write("Die 3 ähnlichsten Profile sind:")
-            else:
-                st.write("Die 3 ähnlichsten Rollen sind:")
+            st.write(f"Die 3 ähnlichsten {set_mode} sind:")
             for loop_index, (row_index, row) in enumerate(most_similar_profiles.iterrows()):
 
                 if set_mode == OPTION_1:
@@ -387,8 +385,8 @@ with st.container():
                                 st.write("Keine Rollenspalte in den Daten vorhanden.")
                 else: #Rollenmodus
                     with st.container(border=True):
-                        role_id = row["Rollen-ID"]
-                        role_name = row["Rollen-Name"]
+                        role_id = row[COLUMN_ROLE_ID]
+                        role_name = row[COLUMN_ROLE]
                         timestamp = pd.Timestamp(row[COLUMN_TIMESTAMP]).strftime("%d.%m.%Y")
                         distance = row["Abstände"]
                         similarity = 100 - (distance / max_dist * 100)
@@ -424,7 +422,7 @@ with st.container():
                             key = f"slider_{index}"
                         )
                 st.form_submit_button("Trends aktualisieren")
-            
+
             if toggle_trends:
                 # Tabelle erstellen
                 years_trends = list(range(2026, 2031)) # Jahre von 2026 bis 2030
@@ -435,10 +433,10 @@ with st.container():
 
                 # Dictionary zum Übersetzen der Werte
                 values_for_trends = {
-                    "weniger wichtig": -0.1, 
-                    "eher weniger wichtig": -0.05, 
-                    "neutral": 0, 
-                    "eher wichtiger": 0.05, 
+                    "weniger wichtig": -0.1,
+                    "eher weniger wichtig": -0.05,
+                    "neutral": 0,
+                    "eher wichtiger": 0.05,
                     "wichtiger": 0.1
                 }
 
