@@ -72,9 +72,5 @@ def no_menu():
         st.sidebar.button(label="Abbrechen", on_click=click_cancel_button)
         if st.sidebar.button(label="Trotzdem Zurück"):
             clear_session_states_except_mode_and_debug_mode()
-            if st.session_state.mode == "analyse":
-                st.switch_page("pages/kompetenzbeurteilung.py")
-            elif st.session_state.mode == "fragebogen":
-                st.switch_page("pages/fragebogen_start.py")
+            st.switch_page("pages/fragebogen_start.py")
     debug_menu()
-
