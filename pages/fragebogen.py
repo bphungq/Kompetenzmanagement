@@ -15,7 +15,6 @@ check_mode()
 no_menu()
 
 # -Profildaten einlesen-
-# TODO: In Google Sheets umwandeln
 data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
 
 # -Fragebogen einlesen-
@@ -27,8 +26,6 @@ def check_none_answers():
     for question_id in question_ids_current_page:
         if st.session_state[f"answer_{question_id}"] is None:
             none_counter += 1
-            question_text = fragebogen.loc[fragebogen["Frage-ID"] == current_question_id, "Frage"].values[0]
-            st.write(f"Frage {question_id} ({question_text}) wurde nicht beantwortet.")
     if none_counter == 0:
         if "none_error" in st.session_state:
             del st.session_state.none_error
@@ -36,7 +33,6 @@ def check_none_answers():
     else:
         if "none_error" not in st.session_state:
             st.session_state.none_error = True
-        st.write(f"Es fehlen {none_counter} Antworten.")
         return True
 
 def update_answers():
