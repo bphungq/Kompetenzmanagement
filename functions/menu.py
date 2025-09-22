@@ -26,6 +26,14 @@ def debug_menu():
 
 def default_menu():
     st.sidebar.image(image="images/Pro-Kom.png")
+    
+    # Importmodus Toggle
+    if "import_mode" not in st.session_state:
+        st.session_state.import_mode = False
+    def click_import_mode_button():
+        st.session_state.import_mode = not st.session_state.import_mode
+    st.sidebar.toggle("Importmodus", value=st.session_state.import_mode, on_change=click_import_mode_button)
+    
     if "mode" not in st.session_state:
         st.sidebar.warning("Modus nicht definiert!")
         st.sidebar.button(label="Modus Analyse", on_click=set_mode, kwargs={"mode_to_set": "analyse"})
@@ -40,7 +48,9 @@ def default_menu():
         st.sidebar.page_link("pages/admin.py", label="Administration")
         st.sidebar.page_link("pages/fragebogen_start.py", label="Fragebogen")
         st.sidebar.page_link("pages/export.py", label="Export")
-        st.sidebar.page_link("pages/import.py", label="Import")
+        st.sidebar.header("Import")
+        st.sidebar.page_link("pages/upload.py", label="Upload")
+        st.sidebar.page_link("pages/import_analyse.py", label="Import Analyse")
     elif st.session_state.mode == "fragebogen":
         st.sidebar.header("Navigation")
         st.sidebar.page_link("pages/fragebogen_start.py", label="Fragebogen")

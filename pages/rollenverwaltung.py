@@ -78,7 +78,8 @@ def submenu_new():
             if not st.session_state[f"value_{cluster_name}"]:
                 st.warning("Bitte geben Sie für alle Cluster einen Wert an")
                 st.stop()
-            cluster_values.append(st.session_state[f"value_{cluster_name}"])
+            # Rundung auf 1 Nachkommastelle
+            cluster_values.append(round(st.session_state[f"value_{cluster_name}"], 1))
         formatted_date = set_date.strftime('%d.%m.%Y %H:%M')
         data = {
             "Speicherzeitpunkt": formatted_date,

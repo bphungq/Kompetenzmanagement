@@ -1,4 +1,5 @@
 import pandas as pd
+import streamlit as st
 
 from config import (
     PATH_QUESTIONNAIRE,
@@ -83,7 +84,10 @@ def get_cluster_names():
         numpy.ndarray: Array mit den eindeutigen Cluster-Namen
     """
     # Funktion zum Abrufen der Cluster-Namen des hinterlegten Fragebogens.
-    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    if not st.session_state.import_mode:
+        fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    else:
+        fragebogen = st.session_state["uploaded_data"]["fragebogen"]
     return fragebogen[COLUMN_CLUSTER_NAME].unique()
 
 
@@ -166,7 +170,12 @@ def get_latest_update_time(profil_id):
         str or None: Zeitpunkt des letzten Eintrags oder None falls keine Einträge vorhanden
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
-    answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    if not st.session_state.import_mode:
+        answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    else:
+        answers = st.session_state["uploaded_data"][GOOGLE_SHEET_ANSWERS]
+        answers = answers.set_index(COLUMN_INDEX)
+
     answers[COLUMN_TIMESTAMP] = pd.to_datetime(
         answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
     )
@@ -208,8 +217,12 @@ def get_selected_cluster_values(
     Returns:
         list or None: Liste der Cluster-Werte oder None falls keine Antworten vorhanden
     """
-    # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
-    answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    if not st.session_state.import_mode:
+        answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    else:
+        answers = st.session_state["uploaded_data"][GOOGLE_SHEET_ANSWERS]
+        answers = answers.set_index(COLUMN_INDEX)
+
     answers[COLUMN_TIMESTAMP] = pd.to_datetime(
         answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
     )
@@ -244,8 +257,12 @@ def get_cluster_values_over_time(profil_id, cluster_name):
         pandas.DataFrame: DataFrame mit Zeitpunkten und Cluster-Werten für die gegebene Kategorie
     """
     # Alle Antworten für die Profil-ID laden
-    # TODO: answers als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
-    answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    if not st.session_state.import_mode:
+        answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    else:
+        answers = st.session_state["uploaded_data"][GOOGLE_SHEET_ANSWERS]
+        answers = answers.set_index(COLUMN_INDEX)
+
     answers[COLUMN_TIMESTAMP] = pd.to_datetime(
         answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
     )
@@ -258,7 +275,10 @@ def get_cluster_values_over_time(profil_id, cluster_name):
     sorted_answers = filtered_answers.sort_values(by=COLUMN_TIMESTAMP, ascending=True)  # type: ignore
 
     # Cluster-Nummer für die gegebene Kategorie finden
-    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    if not st.session_state.import_mode:
+        fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    else:
+        fragebogen = st.session_state["uploaded_data"]["fragebogen"]
     cluster_data = fragebogen[fragebogen[COLUMN_CLUSTER_NAME] == cluster_name]
     cluster_number = int(cluster_data[COLUMN_CLUSTER_NUMBER].iloc[0])
 
@@ -292,7 +312,12 @@ def get_subscale_values_over_time(profil_id, subscale_name):
         pandas.DataFrame: DataFrame mit Zeitpunkten und Subskala-Werten für die gegebene Subskala
     """
     # Alle Antworten für die Profil-ID laden
-    answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    if not st.session_state.import_mode:
+        answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX)
+    else:
+        answers = st.session_state["uploaded_data"][GOOGLE_SHEET_ANSWERS]
+        answers = answers.set_index(COLUMN_INDEX)
+
     answers[COLUMN_TIMESTAMP] = pd.to_datetime(
         answers[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
     )
@@ -342,14 +367,18 @@ def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
     Ruft die Bedarfe für eine bestimmte Rolle ab.
 
     Args:
-        role: Rolle für die die Bedarfe abgerufen werden sollen
+        role: Rollen ID für die die Bedarfe abgerufen werden sollen
         timestamp: Zeitpunkt für den die Bedarfe abgerufen werden sollen
 
     Returns:
         list or None: Liste der Bedarfe für alle 11 Cluster oder None falls nicht gefunden
     """
-    # TODO: bedarfe_df als Parameter übergeben, damit nicht jedes Mal neu geladen wird. Alle Funktionen, die diese Funktion aufrufen, müssen angepasst werden.
-    bedarfe_df = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+    if not st.session_state.import_mode:
+        bedarfe_df = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+    else:
+        bedarfe_df = st.session_state["uploaded_data"][GOOGLE_SHEET_BEDARFE]
+        bedarfe_df = bedarfe_df.set_index(COLUMN_INDEX)
+
     bedarfe_df[COLUMN_TIMESTAMP] = pd.to_datetime(
         bedarfe_df[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
     )
@@ -364,9 +393,10 @@ def get_bedarfe_for_role(role: str | int, timestamp: str) -> list[float] | None:
 
     latest_bedarf = filtered_bedarf.iloc[0]
 
-    # Extrahiere die Cluster-Bedarfe (cluster1 bis cluster11)
+    # Extrahiere die Cluster-Bedarfe
+    cluster_anzahl = len(get_cluster_names()) + 1
     cluster_bedarfe = []
-    for i in range(1, 12):
+    for i in range(1, cluster_anzahl):
         cluster_bedarfe.append(latest_bedarf[f"cluster{i}"])
 
     return cluster_bedarfe
@@ -383,7 +413,12 @@ def get_latest_update_time_bedarf(role):
         str or None: Zeitpunkt des letzten Eintrags oder None falls keine Einträge vorhanden
     """
     # Funktion zum Abrufen des letzten Eintrags für die gegebene ID.
-    bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+    if not st.session_state.import_mode:
+        bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_INDEX)
+    else:
+        bedarfe = st.session_state["uploaded_data"][GOOGLE_SHEET_BEDARFE]
+        bedarfe = bedarfe.set_index(COLUMN_INDEX)
+
     bedarfe[COLUMN_TIMESTAMP] = pd.to_datetime(
         bedarfe[COLUMN_TIMESTAMP], format="%d.%m.%Y %H:%M"
     )

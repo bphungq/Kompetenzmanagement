@@ -22,10 +22,9 @@ def get_dataframe_from_gsheet(worksheet_name, index_col = None, refresh_time_in_
     """
     conn = connect_to_gsheet()
     import_dataframe = conn.read(worksheet=worksheet_name, ttl=refresh_time_in_minutes)
-    dataframe = pd.DataFrame(import_dataframe)
     if index_col is not None:
-        dataframe = dataframe.set_index(index_col)
-    return dataframe
+        import_dataframe = import_dataframe.set_index(index_col)
+    return import_dataframe
 
 def update_dataframe_to_gsheet(worksheet_name, dataframe):
     """
