@@ -26,30 +26,33 @@ from config import (
     COLUMN_ROLE,
 )
 from functions.database import get_dataframe_from_gsheet
-from functions.session_state import check_mode
+from functions.session_state import check_mode, require_uploaded_data
 
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Analyse", layout="wide")
 check_mode()
 default_menu()
 
-
 # -Seiteninhalt-
 st.title("Analyse")
 
-# -Tabelle für Profile verknüpfen-
-data_profiles = get_dataframe_from_gsheet(
-    GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID
-)
+# -Daten laden-
+if not st.session_state.import_mode:
+    data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
+    data_answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP)
+    data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP)
 
-data_answers = get_dataframe_from_gsheet(
-    GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP
-)
+else:
+    # Prüfen, ob alle erforderlichen Upload-Daten vorhanden sind
+    required_keys = {GOOGLE_SHEET_PROFILES, GOOGLE_SHEET_ANSWERS, GOOGLE_SHEET_BEDARFE, "fragebogen"}
+    require_uploaded_data(required_keys)
+
+    # Daten aus Upload laden
+    data_profiles = st.session_state["uploaded_data"][GOOGLE_SHEET_PROFILES].set_index(COLUMN_PROFILE_ID)
+    data_answers = st.session_state["uploaded_data"][GOOGLE_SHEET_ANSWERS].set_index(COLUMN_TIMESTAMP)
+    data_bedarfe = st.session_state["uploaded_data"][GOOGLE_SHEET_BEDARFE].set_index(COLUMN_TIMESTAMP)
+
 data_answers.index = pd.to_datetime(data_answers.index, format='%d.%m.%Y %H:%M')
-
-data_bedarfe = get_dataframe_from_gsheet(
-    GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP
-)
 data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
 
 # Profil und Rollenauswahl in 2 Spalten
@@ -63,13 +66,13 @@ with col1:
     )
     set_id_active_profile = data_profiles.index[
         data_profiles["Name"] == set_name_active_profile
-    ][0]
+        ][0]
 
     # Zeitpunkt auswählen
     filtered_update_time = data_answers.index[
         data_answers[COLUMN_PROFILE_ID] == set_id_active_profile
-    ]
-    
+        ]
+
     # Letzten Zeitpunkt als Standard auswählen
     if len(filtered_update_time) > 0:
         default_time_index = len(filtered_update_time) - 1
@@ -89,7 +92,8 @@ with col1:
 
     # Prüfen und Rolle ausgeben
     if set_id_active_profile in data_answers[COLUMN_PROFILE_ID].values:
-        role_for_selection = data_answers.loc[(data_answers.index == set_update_time_active_profile) & (data_answers[COLUMN_PROFILE_ID] == set_id_active_profile), COLUMN_ROLE].values[0]
+        role_for_selection = data_answers.loc[(data_answers.index == set_update_time_active_profile) & (
+                data_answers[COLUMN_PROFILE_ID] == set_id_active_profile), COLUMN_ROLE].values[0]
     else:
         st.warning("Für dieses Profil sind noch keine Antworten vorhanden. Bitte füllen Sie den Fragebogen aus.")
         st.stop()
@@ -111,7 +115,7 @@ with col2:
     # Zeitpunkt auswählen
     filtered_timestamps_bedarf = data_bedarfe.index[
         data_bedarfe[COLUMN_ROLE] == set_bedarf_role
-    ]
+        ]
     set_timestamp_bedarf = st.selectbox(
         "Zeitpunkt auswählen:",
         filtered_timestamps_bedarf,
@@ -229,18 +233,18 @@ with cols[1]:
     # Ausgewählte Unterkategorien hinzufügen
     if selected_subscales:
         colors = px.colors.qualitative.Set1  # Verschiedene Farben für Unterkategorien
-        
+
         for i, subscale in enumerate(selected_subscales):
             subscale_data = get_subscale_values_over_time(
                 set_id_active_profile, subscale
             )
-            
+
             if not subscale_data.empty:
                 # Zeitpunkt in Jahr konvertieren
                 subscale_data["Jahr"] = pd.to_datetime(
                     subscale_data["Zeitpunkt"], format="%d.%m.%Y %H:%M"
                 ).dt.year
-                
+
                 # Unterkategorie-Linie hinzufügen
                 fig.add_trace(
                     go.Scatter(
@@ -324,7 +328,8 @@ with cols[1]:
         st.write(f"Name: {set_name_active_profile}")
         st.write(f"Anzahl Datenpunkte insgesamt: {len(filtered_update_time)}")
 
-        st.write(f"Rolle zum gewählten Zeitpunkt: {role_for_selection}" if role_for_selection is not None else "Rolle: -")
+        st.write(
+            f"Rolle zum gewählten Zeitpunkt: {role_for_selection}" if role_for_selection is not None else "Rolle: -")
 
         age_dataframe = data_answers.loc[data_answers.index == set_update_time_active_profile, ["Profil-ID", "0SD06"]]
         latest_age_row = age_dataframe.loc[age_dataframe["Profil-ID"] == set_id_active_profile]
@@ -334,7 +339,8 @@ with cols[1]:
             latest_age = None  # Fallback für leere Ergebnisse
         if pd.isna(latest_age):
             latest_age = None
-        st.write(f"Alter zum gewählten Zeitpunkt: {int(latest_age)} Jahre" if latest_age is not None else "Alter: Nicht angegeben")
+        st.write(
+            f"Alter zum gewählten Zeitpunkt: {int(latest_age)} Jahre" if latest_age is not None else "Alter: Nicht angegeben")
         last_update_time_formatted = pd.Timestamp(get_latest_update_time(set_id_active_profile)).strftime("%d.%m.%Y")
         st.write(
             f"Letzte Aktualisierung: {last_update_time_formatted}"

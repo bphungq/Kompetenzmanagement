@@ -25,8 +25,11 @@ def get_amount_questions():
     Returns:
         int: Anzahl der Fragen im Fragebogen
     """
-    # Funktion zum Abrufen der Anzahl der Fragen im Fragebogen.
-    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+
+    if not st.session_state.import_mode:
+        fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    else:
+        fragebogen = st.session_state["uploaded_data"]["fragebogen"]
     return fragebogen.shape[0]
 
 
@@ -42,7 +45,11 @@ def invert_corresponding_answers(df):
     """
     # Funktion zum invertieren der im Fragebogen entsprechend markierten Antworten.
     invert_dict = {1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
-    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    if not st.session_state.import_mode:
+        fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    else:
+        fragebogen = st.session_state["uploaded_data"]["fragebogen"]
+
     df_with_inverted_answers = df
     for index in df_with_inverted_answers.index:
         if (
@@ -92,8 +99,17 @@ def get_cluster_names():
 
 
 def get_questionnaire_summary():
+    """
+    Erstellt eine Zusammenfassung des Fragebogens mit Details zu Subskalen und Clustern.
+    Returns:
+        dict: Dictionary
+    """
     # Fragebogen einlesen
-    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    if not st.session_state.import_mode:
+
+        fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    else:
+        fragebogen = st.session_state["uploaded_data"]["fragebogen"]
 
     summary_dict = {}
 
@@ -330,7 +346,11 @@ def get_subscale_values_over_time(profil_id, subscale_name):
     sorted_answers = filtered_answers.sort_values(by=COLUMN_TIMESTAMP, ascending=True)  # type: ignore
 
     # Fragebogen laden und Frage-IDs für die Subskala finden
-    fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    if not st.session_state.import_mode:
+        fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
+    else:
+        fragebogen = st.session_state["uploaded_data"]["fragebogen"]
+
     subscale_data = fragebogen[fragebogen[COLUMN_SUBSCALE] == subscale_name]
     question_ids = subscale_data[COLUMN_QUESTION_ID].tolist()
 

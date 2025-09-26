@@ -34,6 +34,10 @@ def default_menu():
         st.session_state.import_mode = not st.session_state.import_mode
     st.sidebar.toggle("Importmodus", value=st.session_state.import_mode, on_change=click_import_mode_button)
     
+    # Sicherstellen, dass der Container für hochgeladene Daten existiert
+    if "uploaded_data" not in st.session_state:
+        st.session_state["uploaded_data"] = {}
+    
     if "mode" not in st.session_state:
         st.sidebar.warning("Modus nicht definiert!")
         st.sidebar.button(label="Modus Analyse", on_click=set_mode, kwargs={"mode_to_set": "analyse"})
@@ -45,7 +49,7 @@ def default_menu():
             st.sidebar.page_link("pages/diagnose.py", label="Diagnose")
             st.sidebar.header("Import")
             st.sidebar.page_link("pages/upload.py", label="Upload")
-            st.sidebar.page_link("pages/import_analyse.py", label="Import Analyse test")
+            st.sidebar.page_link("pages/upload_beispiel.py", label="Download Upload Beispiel")
         else:
             st.sidebar.header("Navigation")
             st.sidebar.page_link("pages/analyse.py", label="Analyse")
@@ -58,7 +62,7 @@ def default_menu():
             st.sidebar.page_link("pages/export.py", label="Export")
             st.sidebar.header("Import")
             st.sidebar.page_link("pages/upload.py", label="Upload")
-            st.sidebar.page_link("pages/import_analyse.py", label="Import Analyse")
+            st.sidebar.page_link("pages/upload_beispiel.py", label="Download Upload Beispiel")
     elif st.session_state.mode == "fragebogen":
         st.sidebar.header("Navigation")
         st.sidebar.page_link("pages/fragebogen_start.py", label="Fragebogen")
@@ -72,5 +76,9 @@ def no_menu():
         st.sidebar.button(label="Abbrechen", on_click=click_cancel_button)
         if st.sidebar.button(label="Trotzdem Zurück"):
             clear_session_states_except_mode_and_debug_mode()
-            st.switch_page("pages/fragebogen_start.py")
+            if st.session_state.mode == "analyse":
+                st.switch_page("pages/kompetenzbeurteilung.py")
+            elif st.session_state.mode == "fragebogen":
+                st.switch_page("pages/fragebogen_start.py")
     debug_menu()
+

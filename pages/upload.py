@@ -24,11 +24,9 @@ st.info(
 # -Upload Buttons-
 fragebogen_file = st.file_uploader("Upload Fragebogen", type="csv", key="upload_fragebogen")
 profiles_file = st.file_uploader("Upload Profile", type="csv", key="upload_profiles")
-answers_file = st.file_uploader("Upload Ausgefüllte Fragebögen", type="csv", key="upload_answers")
-roles_file = st.file_uploader("Upload Rollen", type="csv", key="upload_roles")
+answers_file = st.file_uploader("Upload Ausgefüllte Fragebögen (antworten)", type="csv", key="upload_answers")
+roles_file = st.file_uploader("Upload Rollen-Bedarfe", type="csv", key="upload_roles")
 
-if "uploaded_data" not in st.session_state:
-    st.session_state["uploaded_data"] = {}
 
 def read_csv_semicolon(file):
     try:
