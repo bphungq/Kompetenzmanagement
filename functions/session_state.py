@@ -15,7 +15,7 @@ def change_mode():
 
 def check_mode():
     if "mode" not in st.session_state:
-        st.session_state.mode = "analyse"
+        st.session_state.mode = "fragebogen"
         st.session_state.debug_mode = False
 
 def require_uploaded_data(required_keys):
