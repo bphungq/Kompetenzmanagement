@@ -48,7 +48,7 @@ def default_menu():
             st.sidebar.page_link("pages/diagnose.py", label="Diagnose")
             st.sidebar.header("Import")
             st.sidebar.page_link("pages/upload.py", label="Upload")
-            st.sidebar.page_link("pages/upload_beispiel.py", label="Download Upload Beispiel")
+            st.sidebar.page_link("pages/upload_beispiel.py", label="Upload Format")
         else:
             st.sidebar.header("Navigation")
             st.sidebar.page_link("pages/login.py", label="Admin Login")
@@ -62,7 +62,7 @@ def default_menu():
             st.sidebar.page_link("pages/export.py", label="Export")
             st.sidebar.header("Import")
             st.sidebar.page_link("pages/upload.py", label="Upload")
-            st.sidebar.page_link("pages/upload_beispiel.py", label="Download Upload Beispiel")
+            st.sidebar.page_link("pages/upload_beispiel.py", label="Upload Format")
     elif st.session_state.mode == "fragebogen":
         st.sidebar.header("Navigation")
         st.sidebar.page_link("pages/fragebogen_start.py", label="Fragebogen")
