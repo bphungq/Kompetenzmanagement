@@ -19,11 +19,9 @@ from functions.data import (
     calculate_time_differences_bedarfe,
     get_cluster_values_for_correlation_matrix,
     calculate_development_gap,
-    get_selected_cluster_values,
-    get_cluster_names,
     calculate_cluster_differences
 )
-from functions.session_state import check_mode
+from functions.session_state import check_mode, require_uploaded_data
 
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Diagnose", layout="wide")
@@ -35,18 +33,23 @@ TITLE_FONT_SIZE_INCREASE = 10
 
 st.title("Diagnose")
 
-# Daten laden
-data_profiles = get_dataframe_from_gsheet(
-    GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID
-)
-data_answers = get_dataframe_from_gsheet(
-    GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP
-)
-data_answers.index = pd.to_datetime(data_answers.index, format='%d.%m.%Y %H:%M')
+# -Daten laden-
+if not st.session_state.import_mode:
+    data_profiles = get_dataframe_from_gsheet(GOOGLE_SHEET_PROFILES, index_col=COLUMN_PROFILE_ID)
+    data_answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_TIMESTAMP)
+    data_bedarfe = get_dataframe_from_gsheet(GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP)
 
-data_bedarfe = get_dataframe_from_gsheet(
-    GOOGLE_SHEET_BEDARFE, index_col=COLUMN_TIMESTAMP
-)
+else:
+    # Prüfen, ob alle erforderlichen Upload-Daten vorhanden sind
+    required_keys = {GOOGLE_SHEET_PROFILES, GOOGLE_SHEET_ANSWERS, GOOGLE_SHEET_BEDARFE, "fragebogen"}
+    require_uploaded_data(required_keys)
+
+    # Daten aus Upload laden
+    data_profiles = st.session_state["uploaded_data"][GOOGLE_SHEET_PROFILES].set_index(COLUMN_PROFILE_ID)
+    data_answers = st.session_state["uploaded_data"][GOOGLE_SHEET_ANSWERS].set_index(COLUMN_TIMESTAMP)
+    data_bedarfe = st.session_state["uploaded_data"][GOOGLE_SHEET_BEDARFE].set_index(COLUMN_TIMESTAMP)
+
+data_answers.index = pd.to_datetime(data_answers.index, format='%d.%m.%Y %H:%M')
 data_bedarfe.index = pd.to_datetime(data_bedarfe.index, format='%d.%m.%Y %H:%M')
 
 data_answers_real = pd.read_csv("data/antworten_real.csv", sep=',', encoding='utf-8')
