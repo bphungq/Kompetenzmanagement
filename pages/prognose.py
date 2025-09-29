@@ -81,7 +81,7 @@ cluster_values_bedarfe = cluster_values_bedarfe.sort_values(by=[COLUMN_ROLE, "Ja
 # -Abschnitt Auswahl Profil & Rolle-
 with st.container():
     # Profil auswählen
-    st.subheader("Aufwahl Profil & Rolle")
+    st.subheader("Auswahl Profil & Rolle")
     set_name_active_profile = st.selectbox("Profil auswählen:", data_profiles[["Name"]])
     set_id_active_profile = data_profiles.index[data_profiles["Name"] == set_name_active_profile][0]
 
