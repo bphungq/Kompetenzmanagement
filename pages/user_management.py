@@ -22,6 +22,7 @@ answers = get_dataframe_from_gsheet(GOOGLE_SHEET_ANSWERS, index_col=COLUMN_INDEX
 # -Unterseiten-
 def submenu_data():
     if st.button("Daten aktualisieren", key="update_data_button_from_user_management"):
+        st.cache_data.clear()
         st.rerun(scope="app")
     st.subheader("Vorhandene Profile")
     st.write(data_profiles.sort_index())
