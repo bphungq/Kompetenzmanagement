@@ -29,6 +29,7 @@ unique_cluster_names = fragebogen["Cluster-Name"].unique().tolist()
 # -Unterseiten-
 def submenu_data():
     if st.button("Daten aktualisieren", key="update_data_button"):
+        st.cache_data.clear()
         st.rerun(scope="app")
     st.subheader("Datenpunkte Rollen")
     st.write(data_bedarfe)

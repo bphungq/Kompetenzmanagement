@@ -36,9 +36,4 @@ def update_dataframe_to_gsheet(worksheet_name, dataframe):
     conn = connect_to_gsheet()
     dataframe_without_index = dataframe.reset_index()
     conn.update(worksheet=worksheet_name, data=dataframe_without_index)
-
-def create_worksheet(worksheet_name):
-    conn = connect_to_gsheet()
-    conn.create(worksheet=worksheet_name)
-
-
+    st.cache_data.clear()
