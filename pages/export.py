@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from functions.menu import default_menu
+from functions.menu import default_menu, admin_check
 from functions.page import footer
 from functions.database import get_dataframe_from_gsheet
 from functions.session_state import check_mode
@@ -9,6 +9,7 @@ from config import GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, GOOGLE_SHEET_PROFILES, GO
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Export", layout="wide")
 check_mode()
+admin_check()
 default_menu()
 
 

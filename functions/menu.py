@@ -24,6 +24,13 @@ def debug_menu():
         st.sidebar.button(label="Session State vollständig löschen", on_click=clear_session_states)
         st.sidebar.button(label="Modus wechseln", on_click=change_mode)
 
+def admin_check():
+    """
+    Funktion, die prüft ob der Nutzer als Admin eingeloggt ist. Wenn nicht, wird er zum Login weitergeleitet.
+    """
+    if st.session_state.mode != "analyse":
+        st.warning("Sie sind nicht als Admin eingeloggt. Bitte zuerst im Admin Login anmelden.")
+        st.switch_page("pages/login.py")
 
 def default_menu():
     st.sidebar.image(image="images/Pro-Kom.png")

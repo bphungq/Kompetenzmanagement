@@ -10,7 +10,7 @@ from config import (
     COLUMN_PROFILE_ID, COLUMN_ROLE_ID, GOOGLE_SHEET_BEDARFE, PATH_QUESTIONNAIRE,
     CLUSTER_COLUMNS, YEARS_TO_PREDICT, COLUMN_TIMESTAMP, COLUMN_ROLE
 )
-from functions.menu import default_menu
+from functions.menu import default_menu, admin_check
 from functions.page import footer
 from functions.session_state import check_mode
 from functions.database import get_dataframe_from_gsheet
@@ -18,6 +18,7 @@ from functions.database import get_dataframe_from_gsheet
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Prognose", layout="wide")
 check_mode()
+admin_check()
 default_menu()
 
 st.title("Prognose")

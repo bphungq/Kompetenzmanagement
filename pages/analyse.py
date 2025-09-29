@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from functions.page import footer
-from functions.menu import default_menu
+from functions.menu import default_menu, admin_check
 from functions.data import (
     get_cluster_names,
     get_selected_cluster_values,
@@ -31,6 +31,7 @@ from functions.session_state import check_mode, require_uploaded_data
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Analyse", layout="wide")
 check_mode()
+admin_check()
 default_menu()
 
 # -Seiteninhalt-

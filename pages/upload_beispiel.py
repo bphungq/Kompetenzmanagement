@@ -1,6 +1,5 @@
 import streamlit as st
-import pandas as pd
-from functions.menu import default_menu
+from functions.menu import default_menu, admin_check
 from functions.page import footer
 from functions.session_state import check_mode
 from pathlib import Path
@@ -8,6 +7,7 @@ from pathlib import Path
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Upload Format", layout="wide")
 check_mode()
+admin_check()
 default_menu()
 
 # Dateien für den Download vorbereiten

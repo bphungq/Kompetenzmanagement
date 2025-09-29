@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from functions.menu import default_menu
+from functions.menu import default_menu, admin_check
 from functions.page import footer
 from functions.session_state import check_mode
 from config import GOOGLE_SHEET_ANSWERS, GOOGLE_SHEET_PROFILES, GOOGLE_SHEET_BEDARFE
@@ -8,6 +8,7 @@ from config import GOOGLE_SHEET_ANSWERS, GOOGLE_SHEET_PROFILES, GOOGLE_SHEET_BED
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Upload", layout="wide")
 check_mode()
+admin_check()
 default_menu()
 
 # -Seiteninhalt-

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from functions.menu import default_menu
+from functions.menu import default_menu, admin_check
 from functions.page import footer
 from config import (
     GOOGLE_SHEET_PROFILES,
@@ -26,6 +26,7 @@ from functions.session_state import check_mode, require_uploaded_data
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Diagnose", layout="wide")
 check_mode()
+admin_check()
 default_menu()
 
 # Konfiguration für Schriftgrößen der Diagrammtitel

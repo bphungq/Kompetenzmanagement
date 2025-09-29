@@ -6,7 +6,7 @@ import pytz
 
 from pages.user_management import submenu_roles
 
-from functions.menu import default_menu
+from functions.menu import default_menu, admin_check
 from functions.page import footer
 from config import GOOGLE_SHEET_PROFILES, COLUMN_PROFILE_ID, GOOGLE_SHEET_BEDARFE, GOOGLE_SHEET_ANSWERS, COLUMN_INDEX, COLUMN_ROLE, CLUSTER_COLUMNS, PATH_QUESTIONNAIRE
 from functions.database import get_dataframe_from_gsheet, update_dataframe_to_gsheet
@@ -15,6 +15,7 @@ from functions.session_state import clear_session_states_except_mode_and_debug_m
 # -Seitenkonfiguration-
 st.set_page_config(page_title="Rollenverwaltung", layout="wide")
 check_mode()
+admin_check()
 default_menu()
 
 
