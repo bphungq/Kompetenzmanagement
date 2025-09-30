@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 from functions.menu import default_menu, admin_check
 from functions.page import footer
@@ -237,19 +238,64 @@ with col3:
 
 with col4:
 
+    st.subheader("Korrelationen der Cluster")
     corr_data = get_cluster_values_for_correlation_matrix(data_answers_real)
     corr = corr_data.corr()
-    fig3 = px.imshow(
-        corr,
-        text_auto=".2f",
-        color_continuous_scale="RdBu_r",
-        width=600,
-        height=600,
-        title="Korrelationsmatrix",
+    #fig3 = px.imshow(
+        #corr,
+        #text_auto=".2f",
+        #color_continuous_scale="RdBu_r",
+        #width=600,
+        #height=600,
+        #title="Korrelationsmatrix",
+    #)
+    #fig3.update_traces(textfont_size=12)
+    #fig3.update_layout(title_font_size=16 + TITLE_FONT_SIZE_INCREASE)
+    #st.plotly_chart(fig3, use_container_width=False)
+
+    #Diagonale entfernen
+    corr_pairs = (
+        corr.where(~np.eye(corr.shape[0], dtype=bool))  # Entfernt Diagonale
+        .stack()
+        .reset_index()
     )
-    fig3.update_traces(textfont_size=12)
-    fig3.update_layout(title_font_size=16 + TITLE_FONT_SIZE_INCREASE)
-    st.plotly_chart(fig3, use_container_width=False)
+    corr_pairs.columns = ["Variable 1", "Variable 2", "Korrelation"]
+
+    #Sortieren und Entfernen der Duplikate
+    corr_pairs["sorted_pair"] = corr_pairs.apply(lambda row: tuple(sorted([row["Variable 1"], row["Variable 2"]])),
+                                                 axis=1)
+    corr_pairs = corr_pairs.drop_duplicates("sorted_pair").drop(columns="sorted_pair")
+
+    #Ordnen nach Korrelationswert
+    corr_sorted = corr_pairs.sort_values("Korrelation", ascending=False)
+
+    #Auswahl treffen
+    top5 = corr_sorted.head(5)
+    bottom5 = corr_sorted.tail(5)
+
+    #Ausgabe
+    st.markdown("#### Top 5:")
+    for _, row in top5.iterrows():
+        st.write(f"**{row['Variable 1']}** & **{row['Variable 2']}**: {row['Korrelation']:.2f}")
+
+    st.markdown("#### Bottom 5:")
+    for _, row in bottom5.iterrows():
+        st.write(f"**{row['Variable 1']}** & **{row['Variable 2']}**: {row['Korrelation']:.2f}")
+
+    st.markdown("")
+
+    st.markdown("""
+    #### Erläuterung:
+    | Korrelationswert | Bedeutung                        |
+    |------------------|----------------------------------|
+    | +1,00            | Perfekte positive Korrelation    |
+    | ~ +0,70          | Stark positive Korrelation       |
+    | ~ +0,40          | Schwach positive Korrelation     |
+    | 0                | Keine Korrelation                |
+    | ~ -0,40          | Schwach negative Korrelation     |
+    | ~ -0,70          | Stark negative Korrelation       |
+    | -1,00            | Perfekte negative Korrelation    |
+    """)
 
 # Fußzeile
 footer()
