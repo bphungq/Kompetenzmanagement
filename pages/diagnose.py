@@ -241,17 +241,6 @@ with col4:
     st.subheader("Korrelationen der Cluster")
     corr_data = get_cluster_values_for_correlation_matrix(data_answers_real)
     corr = corr_data.corr()
-    #fig3 = px.imshow(
-        #corr,
-        #text_auto=".2f",
-        #color_continuous_scale="RdBu_r",
-        #width=600,
-        #height=600,
-        #title="Korrelationsmatrix",
-    #)
-    #fig3.update_traces(textfont_size=12)
-    #fig3.update_layout(title_font_size=16 + TITLE_FONT_SIZE_INCREASE)
-    #st.plotly_chart(fig3, use_container_width=False)
 
     #Diagonale entfernen
     corr_pairs = (
