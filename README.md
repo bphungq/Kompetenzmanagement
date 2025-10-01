@@ -6,15 +6,12 @@ The tool helps teams document skills, identify gaps, and generate diagnostic tab
 With a user-friendly API, the app can be easily accessed and used by everyone.
 
 
-## Table of Contents
+## 📗 Table of Contents
 * [Technologies Used](#technologie)
 * [Features](#features)
 * [Screenshots](#screenshots)
 * [Installation](#Installation)
-* [Usage](#usage)
 * [Project Status](#project-status)
-* [Room for Improvement](#room-for-improvement)
-* [Acknowledgements](#acknowledgements)
 * [Contact](#contact)
 
 
@@ -86,7 +83,7 @@ With a user-friendly API, the app can be easily accessed and used by everyone.
    ```
 
 
-## Features
+## 📘 Features
 
 ### Analyse
 Compare individual competence profiles with organizational needs. Profile development over time is visualized for a clear and intuitive analysis.
@@ -104,7 +101,7 @@ Predict the future development of competence requirements and individual profile
 The project is currently in a prototype stage, but it is actively maintained and supported.  
 We are also open to developing it further based on your individual requirements.
 
-## Contact
+## ☎️ Contact
 
 Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
 
