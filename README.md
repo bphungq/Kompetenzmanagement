@@ -1,16 +1,26 @@
 
 # Kompetenzmanagement App
 
+A **Streamlit application** for analyzing, capturing, and managing team competencies.
+The tool helps teams document skills, identify gaps, and generate diagnostic tables. This enables managers to create effective improvement plans.
+With a user-friendly API, the app can be easily accessed and used by everyone.
 
-# Über das Projekt
-Eine **Streamlit-Anwendung** zur Analyse, Erfassung und Verwaltung von Kompetenzen im Team.  
-Das Tool unterstützt Teams dabei, Fähigkeiten zu dokumentieren, Lücken zu erkennen und Diagnosetabelle zu erstellen. Dadurch kann die Führungskraft einen effektiven Verbesserungsplan erstellen.  
-Mit einem user-freundlichen API können alle diese App aufwandfrei nutzen.
----
+
+## Table of Contents
+* [Technologies Used](#technologie)
+* [Features](#features)
+* [Screenshots](#screenshots)
+* [Installation](#Installation)
+* [Usage](#usage)
+* [Project Status](#project-status)
+* [Room for Improvement](#room-for-improvement)
+* [Acknowledgements](#acknowledgements)
+* [Contact](#contact)
+
 
 ## 📚 Technologie
-Projekt wurde mithilfe von diesen Bibliothek erstellt:
-### Built With
+### Projekt wurde mithilfe von diesen Bibliothek erstellt:
+
 
 * [![Streamlit][Streamlit.io]][Streamlit-url]
 * [![Pandas][Pandas.pydata]][Pandas-url]
@@ -19,8 +29,6 @@ Projekt wurde mithilfe von diesen Bibliothek erstellt:
 * [![Plotly][Plotly.com]][Plotly-url]
 * [![st-gsheets-connection][Gsheets-Conn]][Gsheets-Conn-url]
 * [![streamlit_gsheets][Streamlit-Gsheets]][Streamlit-Gsheets-url]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 [Streamlit.io]: https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white
 [Streamlit-url]: https://streamlit.io/
@@ -43,6 +51,8 @@ Projekt wurde mithilfe von diesen Bibliothek erstellt:
 [Streamlit-Gsheets]: https://img.shields.io/badge/streamlit__gsheets-0A66C2?style=for-the-badge
 [Streamlit-Gsheets-url]: https://github.com/arnaudmiribel/streamlit-gsheets
 
+--
+
 - streamlit == 1.48.0
 - pandas==2.3.1
 - numpy==2.3.1
@@ -50,7 +60,7 @@ Projekt wurde mithilfe von diesen Bibliothek erstellt:
 - plotly==6.2.0
 - st-gsheets-connection==0.1.0
 - scikit-learn==1.7.1
-- # streamlit_gsheets==0.1.3 hier muss ein githublink rein
+- streamlit_gsheets==0.1.3 hier muss ein githublink rein
 
 
 ---
@@ -72,5 +82,30 @@ Projekt wurde mithilfe von diesen Bibliothek erstellt:
    ```
    $ streamlit run analyse_app.py
 
-   oder navigate to testrun.py and click on "Run Python File"
+   or navigate to testrun.py and click on "Run Python File"
    ```
+
+
+## Features
+
+### Analyse
+Compare individual competence profiles with organizational needs. Profile development over time is visualized for a clear and intuitive analysis.
+
+### Diagnose
+Track and compare the development of roles and their required skills. A correlation table is generated to ensure transparency and traceability.
+
+### Prognose
+Predict the future development of competence requirements and individual profiles. Improvement measures can be freely selected to support targeted skill development.
+
+## Screenshots
+![Example screenshot](./images/Screenshot.png)
+
+## Project Status
+The project is currently in a prototype stage, but it is actively maintained and supported.  
+We are also open to developing it further based on your individual requirements.
+
+## Contact
+
+Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
+
+Project Link: [https://github.com/TimsGitH/Kompetenzmanagement](https://github.com/TimsGitH/Kompetenzmanagement)
