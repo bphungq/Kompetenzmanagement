@@ -16,7 +16,7 @@ With a user-friendly API, the app can be easily accessed and used by everyone.
 
 
 ## 📚 Technologie
-### Projekt wurde mithilfe von diesen Bibliothek erstellt:
+### This project was created using the following libraries:
 
 
 * [![Streamlit][Streamlit.io]][Streamlit-url]
