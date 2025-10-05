@@ -110,6 +110,8 @@ def get_questionnaire_summary():
         fragebogen = pd.read_csv(PATH_QUESTIONNAIRE, sep=";", encoding="utf-8")
     else:
         fragebogen = st.session_state["uploaded_data"]["fragebogen"]
+    
+    fragebogen = fragebogen[fragebogen[COLUMN_SUBSCALE] != "KONTROLLFRAGE"]
 
     summary_dict = {}
 
