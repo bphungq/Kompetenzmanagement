@@ -748,47 +748,5 @@ def get_gap_analysis_legend(analysis_type="analyse"):
     else:
         return ""
 
-def search_correlation_from_pairs(corr_pairs: pd.DataFrame):
-    """
-    Suchfunktion für Korrelation zwischen 2 beliebigen Kompetenzen
-
-    Args:
-        corr_pairs (pd.DataFrame): Muss zusammen mit Variable 'Corr_pairs' ['Variable 1', 'Variable 2', 'Korrelation'] sein.
-    """
-
-
-    # Holen eindeutige Kompetenzen aus corr_pairs DataFrame
-    variables = sorted(set(corr_pairs["Variable 1"]).union(set(corr_pairs["Variable 2"])))
-
-    # Dropdown zur Wahl der Kompetenzen
-    col1, col2 = st.columns(2)
-    var1 = col1.selectbox("Erste Kompetenz auswählen", variables)
-    var2 = col2.selectbox("Zweite Kompetenz auswählen", variables, index=1)
-
-    # Errorausgabe beim identischen Kompetenzenwahl
-    if var1 == var2:
-        st.info("Wählen Sie bitte 2 unterschiedliche Kompetenzen")
-        return
-
-    # Korrelationswert holen
-    search_pair = tuple(sorted([var1, var2]))
     
-    mask = (
-        ((corr_pairs["Variable 1"] == search_pair[0]) & (corr_pairs["Variable 2"] == search_pair[1])) |
-        ((corr_pairs["Variable 1"] == search_pair[1]) & (corr_pairs["Variable 2"] == search_pair[0]))
-    )
-    match = corr_pairs[mask]
-
-    if match.empty:
-        st.warning(f"Keine Korrelation für {var1} und {var2} gefunden.")
-        return
-
-    corr_value = match["Korrelation"].iloc[0]
-
-    # Ausgabe
-    st.metric(
-        label=f"Korrelation zwischen **{var1}** und **{var2}**",
-        value=f"{corr_value:.2f}"
-    )
-
 
