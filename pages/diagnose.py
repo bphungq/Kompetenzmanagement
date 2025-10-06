@@ -294,8 +294,9 @@ with col4:
 
     # Dropdown zur Wahl der Kompetenzen
     col1, col2 = st.columns(2)
-    var1 = col1.selectbox("Erste Kompetenz auswählen", variables)
-    var2 = col2.selectbox("Zweite Kompetenz auswählen", variables, index=1)
+    var1 = col1.selectbox("Erste Kompetenz auswählen", variables, key="var1_select")
+    var2 = col2.selectbox("Zweite Kompetenz auswählen", variables, index=1, key="var2_select")
+
 
     # Errorausgabe beim identischen Kompetenzenwahl
     if var1 == var2:
