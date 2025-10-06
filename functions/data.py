@@ -748,5 +748,4 @@ def get_gap_analysis_legend(analysis_type="analyse"):
     else:
         return ""
 
-    
 
