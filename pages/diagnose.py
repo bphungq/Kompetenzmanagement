@@ -20,8 +20,7 @@ from functions.data import (
     calculate_time_differences_bedarfe,
     get_cluster_values_for_correlation_matrix,
     calculate_development_gap,
-    calculate_cluster_differences,
-    search_correlation_from_pairs
+    calculate_cluster_differences
 )
 from functions.session_state import check_mode, require_uploaded_data
 
@@ -286,9 +285,43 @@ with col4:
     | ~ -0,70          | Stark negative Korrelation       |
     | -1,00            | Perfekte negative Korrelation    |
     """)
+
     #Suchfunktion nach Korrelation zwischen 2 beliebigen Kompetenzen
     st.markdown('#### Korrelation zwischen:')
-    search_correlation_from_pairs(corr_pairs)
+
+    # Holen eindeutige Kompetenzen aus corr_pairs DataFrame
+    variables = sorted(set(corr_pairs["Variable 1"]).union(set(corr_pairs["Variable 2"])))
+
+    # Dropdown zur Wahl der Kompetenzen
+    col1, col2 = st.columns(2)
+    var1 = col1.selectbox("Erste Kompetenz auswählen", variables)
+    var2 = col2.selectbox("Zweite Kompetenz auswählen", variables, index=1)
+
+    # Errorausgabe beim identischen Kompetenzenwahl
+    if var1 == var2:
+        st.info("Wählen Sie bitte 2 unterschiedliche Kompetenzen")   
+
+    # Korrelationswert holen
+    search_pair = tuple(sorted([var1, var2]))
+    
+    mask = (
+        ((corr_pairs["Variable 1"] == search_pair[0]) & (corr_pairs["Variable 2"] == search_pair[1])) |
+        ((corr_pairs["Variable 1"] == search_pair[1]) & (corr_pairs["Variable 2"] == search_pair[0]))
+    )
+    match = corr_pairs[mask]
+
+    if match.empty:
+        st.warning(f"Keine Korrelation für {var1} und {var2} gefunden.")
+        
+
+    corr_value = match["Korrelation"].iloc[0]
+
+    # Ausgabe
+    st.metric(
+        label=f"Korrelation zwischen **{var1}** und **{var2}**",
+        value=f"{corr_value:.2f}"
+    )
+
 
 
 
