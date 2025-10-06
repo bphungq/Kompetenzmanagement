@@ -20,8 +20,7 @@ from functions.data import (
     calculate_time_differences_bedarfe,
     get_cluster_values_for_correlation_matrix,
     calculate_development_gap,
-    calculate_cluster_differences,
-    search_correlation_from_pairs
+    calculate_cluster_differences
 )
 from functions.session_state import check_mode, require_uploaded_data
 
@@ -286,11 +285,6 @@ with col4:
     | ~ -0,70          | Stark negative Korrelation       |
     | -1,00            | Perfekte negative Korrelation    |
     """)
-    #Suchfunktion nach Korrelation zwischen 2 beliebigen Kompetenzen
-    st.markdown('#### Korrelation zwischen:')
-    search_correlation_from_pairs(corr_pairs)
-
-
 
     #Suchfunktion nach Korrelation zwischen 2 beliebigen Kompetenzen
     st.markdown('#### Korrelation zwischen:')
