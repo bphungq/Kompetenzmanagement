@@ -62,19 +62,92 @@ With a user-friendly API, the app can be easily accessed and used by everyone.
 
 ---
 
+## ⚙️ Configuration
+
+In this project, **Google Sheets** is used as the primary database.
+The connection is established using Streamlit’s `st.connection()` function in combination with the `secrets.toml` configuration file.
+
+---
+
+### 🔐 `secrets.toml`
+
+This file securely stores all sensitive information such as API keys, database credentials, and configuration values.
+It is stored **locally** on each user’s machine and is **not included** in the public repository for security reasons.
+
+#### Example Structure
+
+```
+# .streamlit/secrets.toml
+
+[connections.gsheets]
+spreadsheet = "https://docs.google.com/spreadsheets/d/xxxxxxx/edit#gid=0"
+
+# From your JSON key file
+type = "service_account"
+project_id = "xxx"
+private_key_id = "xxx"
+private_key = "xxx"
+client_email = "xxx"
+client_id = "xxx"
+auth_uri = "https://accounts.google.com/o/oauth2/auth"
+token_uri = "https://oauth2.googleapis.com/token"
+auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+client_x509_cert_url = "xxx"
+
+[credentials]
+# Define username and password here, for example:
+admin1234 = "56789"
+```
+
+📝 **Notes:**
+
+* Under `[connections.gsheets]`, insert the **private Google Sheets link** you want the app to use.
+* To create your **JSON key file**, please follow the official Streamlit documentation [here](https://docs.streamlit.io/develop/tutorials/databases/private-gsheet).
+
+---
+
+### 🔌 Data Connection
+
+This application connects securely to Google Sheets using Streamlit’s built-in `st.connection()` API.
+All connection details — including spreadsheet URLs and service account credentials — are stored inside the `.streamlit/secrets.toml` file to ensure sensitive data remains private and version-controlled safely.
+
+The connection is initialized with:
+
+```
+conn = st.connection("gsheets", type=GSheetsConnection)
+```
+
+This line tells Streamlit to look for a configuration block named `[connections.gsheets]` inside your `secrets.toml` file.
+That section defines the data source (Google Sheets) and the authentication method (service account).
+
+⚠️ **Important:**
+The connection name `"gsheets"` **must exactly match** the name in your `secrets.toml`.
+If you rename `[connections.gsheets]` to something else (e.g. `[connections.mydata]`), you must also update your code accordingly:
+
+```python
+st.connection("mydata", type=GSheetsConnection)
+```
+
+Otherwise, the app will not find the connection and may fail to start.
+
+📁 **Worksheet Configuration:**
+If your Google Sheet contains multiple worksheets with different names, make sure the worksheet paths are correctly updated in `config.py` to match each specific sheet.
+
+
+
 ## ⚙️ Installation
 1. Clone the Repo
    ```sh
    git clone https://github.com/TimsGitH/Kompetenzmanagement
    ```
 
-1. Install the requirements
+2. Install the requirements
 
    ```
    $ pip install -r requirements.txt
    ```
 
-2. Run the app
+3. Run the app
 
    ```
    $ streamlit run analyse_app.py
@@ -94,10 +167,10 @@ Track and compare the development of roles and their required skills. A correlat
 ### Prognose
 Predict the future development of competence requirements and individual profiles. Improvement measures can be freely selected to support targeted skill development.
 
-## Screenshots
+## 📷 Screenshots
 ![Example screenshot](./images/Screenshot.png)
 
-## Project Status
+## ⏳Project Status
 The project is currently in a prototype stage, but it is actively maintained and supported.  
 We are also open to developing it further based on your individual requirements.
 
